@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}3 · Regresión{% endblock %}
+{% block topbar %}3 · Regresión — Ajuste de modelos{% endblock %}
+{% block nav_reg %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Regresión</div>
+  <h1>📈 Ajuste de modelos</h1>
+  <p>Relaciona dos variables (X → Y) y ajusta modelos <b>lineal</b>, <b>exponencial</b>,
+     <b>logarítmico</b> y <b>polinómico</b>. Compara su calidad y predice nuevos valores.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Modelos y bondad de ajuste</h3>
+  <div class="formula">Lineal: y = a + b·x &nbsp;|&nbsp; Exponencial: y = a·e^(b·x) &nbsp;|&nbsp; Log.: y = a + b·ln(x) &nbsp;|&nbsp; Polinómico: y = c₀ + c₁x + … + c_d x^d</div>
+  <p>El <b>R²</b> mide la proporción de variabilidad explicada (0 a 1). El <b>R² ajustado</b> penaliza
+     el exceso de parámetros, útil para comparar modelos con distinto número de coeficientes. El
+     <b>RMSE</b> está en las unidades de Y (menor es mejor).</p>
+  <p class="small muted">Nota: el exponencial exige Y &gt; 0 y el logarítmico exige X &gt; 0.</p>
+</div>
+
+<div class="card">
+  <h2><span class="step">1</span> Variables y modelo</h2>
+  <div id="needdata"></div>
+  <div class="grid grid-3" id="controls">
+    <div class="field"><label for="colx">Variable X (independiente)</label><select id="colx"></select></div>
+    <div class="field"><label for="coly">Variable Y (dependiente)</label><select id="coly"></select></div>
+    <div class="field"><label for="model">Modelo</label>
+      <select id="model">
+        <option value="lineal">Lineal</option>
+        <option value="exponencial">Exponencial</option>
+        <option value="logarítmico">Logarítmico</option>
+        <option value="polinómico">Polinómico</option>
+      </select>
+    </div>
+    <div class="field" id="degField" style="display:none"><label for="degree">Grado del polinomio</label>
+      <input type="number" id="degree" min="2" max="8" value="2"></div>
+    <div class="field"><label for="predx">Predecir en X = (opcional, separa con comas)</label>
+      <input type="text" id="predx" placeholder="ej: 25, 30"></div>
+    <div class="field" style="justify-content:flex-end">
+      <button class="btn" id="btnRun">Ajustar modelo</button>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="btnCompare">Comparar los 4 modelos</button>
+  </div>
+  <div id="run-msg"></div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2 id="res-title">Resultado del ajuste</h2>
+    <div class="alert alert-ok" id="eqbox"></div>
+    <div class="stat-grid" id="stats"></div>
+    <div id="params" class="small" style="margin-top:.8rem"></div>
+    <div id="predbox" class="small" style="margin-top:.6rem"></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+  </div>
+  <div class="card">
+    <h2>Gráficos</h2>
+    <div class="chart-grid">
+      <div><div class="section-title">Datos y curva ajustada</div><div class="chart-box"><canvas id="fitChart"></canvas></div></div>
+      <div><div class="section-title">Residuos vs. ajustado</div><div class="chart-box"><canvas id="resChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="compare" class="card hidden">
+  <h2>Comparación de modelos</h2>
+  <div class="table-wrap"><table id="cmpTable">
+    <thead><tr><th>Modelo</th><th>Ecuación</th><th>R²</th><th>R² ajust.</th><th>RMSE</th><th>MAE</th></tr></thead>
+    <tbody></tbody></table></div>
+  <p class="small muted" style="margin-top:.6rem">Ordenados por R² ajustado. La fila verde es el mejor modelo.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+let fitChart,resChart,LAST=null,CTX={};
+
+function initCols(){
+  if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return; }
+  const nums=PronoStat.numericColumns();
+  if(nums.length<2){ $('needdata').innerHTML='<div class="alert alert-warn">Se necesitan al menos 2 columnas numéricas.</div>'; $('controls').style.display='none'; return; }
+  PSU.fillColumnSelect($('colx'),nums,{selectedIndex:0});
+  PSU.fillColumnSelect($('coly'),nums,{selectedIndex:1});
+}
+initCols();
+$('model').addEventListener('change',()=>{ $('degField').style.display = $('model').value==='polinómico'?'':'none'; });
+
+function readXY(){
+  const cx=$('colx').value, cy=$('coly').value;
+  const d=PronoStat.get();
+  const x=[],y=[];
+  d.rows.forEach(r=>{ const a=Number(r[cx]),b=Number(r[cy]);
+    if(!Number.isNaN(a)&&!Number.isNaN(b)&&r[cx]!==null&&r[cy]!==null){x.push(a);y.push(b);} });
+  return {x,y,cx,cy};
+}
+
+$('btnRun').addEventListener('click', run);
+async function run(){
+  const {x,y,cx,cy}=readXY();
+  const predict_x=$('predx').value.split(',').map(s=>parseFloat(s.trim())).filter(v=>!Number.isNaN(v));
+  $('run-msg').innerHTML='Ajustando… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/regresion/api/solve',
+      {x,y,model:$('model').value,degree:parseInt($('degree').value)||2,predict_x});
+    LAST=r; CTX={cx,cy}; $('run-msg').innerHTML=''; render(r,cx,cy);
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+}
+
+function stat(k,v,u=''){return `<div class="stat"><div class="k">${k}</div><div class="v">${PSU.fmt(v)}</div>${u?`<div class="u">${u}</div>`:''}</div>`;}
+
+function render(r,cx,cy){
+  $('results').classList.remove('hidden');
+  $('res-title').textContent=`Ajuste ${r.model} · ${cy} en función de ${cx}`;
+  $('eqbox').innerHTML=`<b>Ecuación ajustada:</b> <span class="mono">${r.equation}</span>`;
+  const m=r.metrics;
+  $('stats').innerHTML=stat('R²',m.r2)+stat('R² ajustado',m.r2_adj)+stat('RMSE',m.rmse)+stat('MAE',m.mae)+stat('n',r.n);
+  $('params').innerHTML='<b>Parámetros:</b> '+Object.entries(r.params).map(([k,v])=>`${k} = <span class="mono">${PSU.fmt(v)}</span>`).join(' · ');
+  $('predbox').innerHTML = r.predictions&&r.predictions.length
+    ? '<b>Predicciones:</b> '+r.predictions.map(p=>`ŷ(${PSU.fmt(p.x)}) = <span class="mono">${p.y===null?'—':PSU.fmt(p.y)}</span>`).join(' · ') : '';
+
+  // dispersión + curva
+  const pts=r.points.x.map((x,i)=>({x,y:r.points.y[i]}));
+  const curve=r.curve.x.map((x,i)=>({x,y:r.curve.y[i]}));
+  if(fitChart) fitChart.destroy();
+  fitChart=new Chart($('fitChart'),{data:{datasets:[
+      {type:'scatter',label:'Datos',data:pts,backgroundColor:'#0f766e'},
+      {type:'line',label:`Ajuste (${r.model})`,data:curve,borderColor:'#6d28d9',borderWidth:2,pointRadius:0,parsing:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,
+      plugins:{legend:{position:'top'}},
+      scales:{x:{type:'linear',title:{display:true,text:cx}},y:{title:{display:true,text:cy}}}}});
+
+  // residuos
+  const rp=r.fitted.map((f,i)=>({x:f,y:r.residuals[i]}));
+  if(resChart) resChart.destroy();
+  resChart=new Chart($('resChart'),{data:{datasets:[
+      {type:'scatter',label:'Residuo',data:rp,backgroundColor:'#b45309'}
+    ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{type:'linear',title:{display:true,text:'Valor ajustado ŷ'}},
+              y:{title:{display:true,text:'Residuo (y − ŷ)'},grid:{color:c=>c.tick.value===0?'#94a3b8':'#e2e8f0'}}}}});
+}
+
+$('btnCompare').addEventListener('click', async ()=>{
+  const {x,y}=readXY();
+  $('run-msg').innerHTML='Comparando… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/regresion/api/compare',{x,y,degree:parseInt($('degree').value)||2});
+    $('run-msg').innerHTML='';
+    $('compare').classList.remove('hidden');
+    const tb=$('cmpTable').querySelector('tbody'); tb.innerHTML='';
+    r.ranking.forEach(m=>{
+      const tr=document.createElement('tr');
+      if(m.ok){
+        if(m.model===r.best) tr.className='best-row';
+        tr.innerHTML=`<td><b>${m.model}</b></td><td class="mono small">${m.equation}</td>
+          <td class="num">${PSU.fmt(m.r2)}</td><td class="num">${PSU.fmt(m.r2_adj)}</td>
+          <td class="num">${PSU.fmt(m.rmse)}</td><td class="num">${PSU.fmt(m.mae)}</td>`;
+      }else{
+        tr.innerHTML=`<td><b>${m.model}</b></td><td colspan="5" class="small" style="color:#b91c1c;text-align:left">${m.error}</td>`;
+      }
+      tb.appendChild(tr);
+    });
+    $('compare').scrollIntoView({behavior:'smooth'});
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+
+$('btnExport').addEventListener('click', async ()=>{
+  if(!LAST) return;
+  try{ await PSU.downloadPost('/exportar/regresion',{ctx:CTX,resultado:LAST},`regresion_${LAST.model}.xlsx`); }
+  catch(err){ alert('No se pudo exportar: '+err.message); }
+});
+</script>
+{% endblock %}

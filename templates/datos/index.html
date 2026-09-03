@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}1 · Datos{% endblock %}
+{% block topbar %}1 · Datos — Importación y limpieza{% endblock %}
+{% block nav_datos %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Datos</div>
+  <h1>📥 Módulo de Datos</h1>
+  <p>Importa tu Excel o CSV, elige la hoja y los campos, revisa los tipos detectados y aplica una
+     limpieza básica. El conjunto limpio queda disponible para los demás módulos.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 ¿Por qué preparar los datos?</h3>
+  <p>Todo análisis serio parte de datos <b>ordenados</b>: una fila por observación, una columna por
+     variable, tipos correctos y sin valores problemáticos. Aquí controlas cuatro decisiones clave:</p>
+  <ul>
+    <li><b>Hoja y campos:</b> qué parte del archivo usarás.</li>
+    <li><b>Tipos:</b> numérico, fecha, texto o booleano (se detectan automáticamente, pero puedes corregir).</li>
+    <li><b>Nulos:</b> conservarlos, o eliminar filas incompletas.</li>
+    <li><b>Duplicados:</b> filas repetidas que sesgan los estadísticos.</li>
+  </ul>
+</div>
+
+<!-- PASO 1: cargar archivo -->
+<div class="card">
+  <h2><span class="step">1</span> Importar Excel o CSV</h2>
+  <div class="grid grid-2">
+    <div class="field">
+      <label for="file">Archivo (.xlsx, .xls, .csv)</label>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv">
+      <span class="hint">El archivo se procesa en tu navegador; no se sube a ningún servidor.</span>
+    </div>
+    <div class="field" id="sheet-field" style="display:none">
+      <label for="sheet">Hoja</label>
+      <select id="sheet"></select>
+      <label class="check" style="margin-top:.4rem"><input type="checkbox" id="hasHeader" checked> La primera fila son los nombres de columna</label>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="btnDemo">Usar dataset de ejemplo (ventas mensuales)</button>
+  </div>
+  <div id="load-msg"></div>
+</div>
+
+<!-- PASO 2: tipos y perfil -->
+<div class="card hidden" id="card-profile">
+  <h2><span class="step">2</span> Campos, tipos y calidad</h2>
+  <p class="card-sub">Selecciona las columnas a conservar y ajusta el tipo si la detección no es correcta.</p>
+  <div id="profile-summary"></div>
+  <div class="table-wrap">
+    <table id="profile-table">
+      <thead>
+        <tr>
+          <th>Conservar</th><th>Columna</th><th>Tipo</th><th>Faltantes</th>
+          <th>Únicos</th><th>Muestra</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PASO 3: limpieza -->
+<div class="card hidden" id="card-clean">
+  <h2><span class="step">3</span> Limpieza básica</h2>
+  <div class="grid grid-2">
+    <div class="field">
+      <label for="na">Valores nulos</label>
+      <select id="na">
+        <option value="keep">Conservar filas con nulos</option>
+        <option value="drop_any">Eliminar filas con algún nulo</option>
+        <option value="drop_all">Eliminar solo filas totalmente vacías</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Opciones</label>
+      <label class="check"><input type="checkbox" id="dropDup"> Eliminar filas duplicadas</label>
+      <label class="check"><input type="checkbox" id="coerce" checked> Convertir columnas numéricas a número real</label>
+      <label class="check"><input type="checkbox" id="trim" checked> Recortar espacios en texto</label>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn" id="btnClean">Aplicar limpieza y guardar dataset</button>
+  </div>
+  <div id="clean-msg"></div>
+</div>
+
+<!-- PASO 4: vista previa -->
+<div class="card hidden" id="card-preview">
+  <h2><span class="step">4</span> Dataset listo</h2>
+  <div id="preview-summary"></div>
+  <div class="table-wrap"><table id="preview-table"><thead></thead><tbody></tbody></table></div>
+  <div class="btn-row">
+    <a class="btn btn-ghost" href="/descriptiva/">Ir a Estadística descriptiva →</a>
+    <a class="btn btn-ghost" href="/regresion/">Ir a Regresión →</a>
+    <a class="btn btn-ghost" href="/pronostico/">Ir a Pronósticos →</a>
+    <button class="btn-ghost btn" id="btnExport">⬇ Exportar dataset a Excel</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let RAW = { columns: [], rows: [] };   // dataset crudo (hoja seleccionada)
+let PROFILE = null;                     // perfil devuelto por el servidor
+
+const $ = id => document.getElementById(id);
+function msg(el, html, cls='alert-info'){ $(el).innerHTML = html ? `<div class="alert ${cls}">${html}</div>` : ''; }
+
+/* ---------- Carga de archivo ---------- */
+let WB = null;
+$('file').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  msg('load-msg', 'Leyendo archivo… <span class="spinner"></span>');
+  try {
+    const buf = await f.arrayBuffer();
+    WB = XLSX.read(buf, { type: 'array', cellDates: true });
+    const sel = $('sheet'); sel.innerHTML = '';
+    WB.SheetNames.forEach(n => { const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    $('sheet-field').style.display = '';
+    msg('load-msg', `Archivo <b>${f.name}</b> cargado. Hojas: ${WB.SheetNames.length}.`, 'alert-ok');
+    loadSheet();
+  } catch (err) {
+    msg('load-msg', 'No se pudo leer el archivo: ' + err.message, 'alert-err');
+  }
+});
+$('sheet').addEventListener('change', loadSheet);
+$('hasHeader').addEventListener('change', loadSheet);
+
+function loadSheet(){
+  if (!WB) return;
+  const ws = WB.Sheets[$('sheet').value];
+  const hasHeader = $('hasHeader').checked;
+  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false });
+  if (!aoa.length){ msg('load-msg','La hoja está vacía.','alert-warn'); return; }
+  let header, dataRows;
+  if (hasHeader){ header = aoa[0].map((h,i)=> (h===null||h==='')?`col_${i+1}`:String(h)); dataRows = aoa.slice(1); }
+  else { header = aoa[0].map((_,i)=>`col_${i+1}`); dataRows = aoa; }
+  RAW.columns = header;
+  RAW.rows = dataRows.map(r => { const o={}; header.forEach((c,i)=>o[c]= r[i]===undefined?null:r[i]); return o; });
+  analyze();
+}
+
+$('btnDemo').addEventListener('click', () => {
+  // 24 meses de ventas con tendencia + estacionalidad + algo de ruido
+  const base=[112,118,132,129,121,135,148,148,136,119,104,118,
+              115,126,141,135,125,149,170,170,158,133,114,140,
+              145,150,178,163,172,178,199,199,184,162,146,166];
+  RAW.columns = ['mes','ventas','gasto_pub'];
+  RAW.rows = base.map((v,i)=>({ mes:i+1, ventas:v, gasto_pub: Math.round(v*0.35 + (i%12)*2 + 20) }));
+  WB=null; $('sheet-field').style.display='none';
+  msg('load-msg','Dataset de ejemplo cargado (36 meses de ventas, gasto publicitario).','alert-ok');
+  analyze();
+});
+
+/* ---------- Perfilado (servidor) ---------- */
+async function analyze(){
+  try{
+    PROFILE = await PSU.postJSON('/datos/api/analyze', { columns: RAW.columns, rows: RAW.rows });
+    renderProfile();
+  }catch(err){ msg('load-msg','Error al analizar: '+err.message,'alert-err'); }
+}
+
+const TYPES = ['numérico','fecha','texto','booleano'];
+function renderProfile(){
+  $('card-profile').classList.remove('hidden');
+  $('card-clean').classList.remove('hidden');
+  const dupPill = PROFILE.duplicate_rows>0
+     ? `<span class="pill pill-a">${PROFILE.duplicate_rows} duplicadas</span>` : `<span class="pill pill-g">sin duplicados</span>`;
+  $('profile-summary').innerHTML =
+    `<div class="stat-grid" style="margin-bottom:1rem">
+       <div class="stat"><div class="k">Filas</div><div class="v">${PROFILE.n_rows}</div></div>
+       <div class="stat"><div class="k">Columnas</div><div class="v">${PROFILE.n_cols}</div></div>
+       <div class="stat"><div class="k">Duplicadas</div><div class="v">${PROFILE.duplicate_rows}</div><div class="u">${dupPill}</div></div>
+     </div>`;
+  const tb = $('profile-table').querySelector('tbody'); tb.innerHTML='';
+  PROFILE.columns.forEach(c => {
+    const opts = TYPES.map(t=>`<option value="${t}" ${t===c.type?'selected':''}>${t}</option>`).join('');
+    const miss = c.missing>0 ? `<span class="pill pill-a">${c.missing} (${c.missing_pct}%)</span>` : '<span class="pill pill-g">0</span>';
+    const tr=document.createElement('tr');
+    tr.innerHTML =
+      `<td style="text-align:center"><input type="checkbox" class="keep" data-col="${c.name}" checked></td>
+       <td><b>${c.name}</b></td>
+       <td><select class="type" data-col="${c.name}">${opts}</select></td>
+       <td>${miss}</td>
+       <td class="num">${c.unique}</td>
+       <td class="small muted">${(c.sample||[]).map(v=>v===null?'∅':v).join(', ')}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- Limpieza ---------- */
+$('btnClean').addEventListener('click', async () => {
+  const keep=[...document.querySelectorAll('.keep')].filter(c=>c.checked).map(c=>c.dataset.col);
+  if(!keep.length){ msg('clean-msg','Selecciona al menos una columna.','alert-warn'); return; }
+  const types={}; document.querySelectorAll('.type').forEach(s=>types[s.dataset.col]=s.value);
+  const options={ keep, types, na_policy:$('na').value, drop_duplicates:$('dropDup').checked,
+                  coerce_numeric:$('coerce').checked, trim_text:$('trim').checked };
+  msg('clean-msg','Limpiando… <span class="spinner"></span>');
+  try{
+    const res = await PSU.postJSON('/datos/api/clean', { columns: RAW.columns, rows: RAW.rows, options });
+    const d = { source: (WB? $('file').files[0]?.name : 'ejemplo') || 'dataset',
+                sheet: WB? $('sheet').value : null, columns: res.columns, rows: res.rows, meta: res.report };
+    PronoStat.save(d);
+    const r=res.report;
+    msg('clean-msg', `Dataset guardado. ${r.rows_before} → <b>${r.rows_after}</b> filas `+
+        `(nulos: −${r.removed_na}, duplicados: −${r.removed_dup}).`, 'alert-ok');
+    renderPreview(res);
+  }catch(err){ msg('clean-msg','Error: '+err.message,'alert-err'); }
+});
+
+function renderPreview(res){
+  $('card-preview').classList.remove('hidden');
+  $('preview-summary').innerHTML =
+    `<p class="muted small">Columnas: ${res.columns.map(c=>`<b>${c.name}</b> <span class="pill pill-b">${c.type}</span>`).join(' · ')}</p>`;
+  const thead=$('preview-table').querySelector('thead');
+  const tbody=$('preview-table').querySelector('tbody');
+  thead.innerHTML='<tr>'+res.columns.map(c=>`<th>${c.name}</th>`).join('')+'</tr>';
+  tbody.innerHTML = res.rows.slice(0,12).map(r=>
+    '<tr>'+res.columns.map(c=>`<td class="${c.type==='numérico'?'num':''}">${r[c.name]===null?'∅':r[c.name]}</td>`).join('')+'</tr>'
+  ).join('');
+  $('card-preview').scrollIntoView({behavior:'smooth'});
+}
+
+$('btnExport').addEventListener('click', async () => {
+  const d = PronoStat.get(); if(!d) return;
+  try{
+    await PSU.downloadPost('/exportar/dataset', { columns:d.columns, rows:d.rows, source:d.source },
+                           'pronostat_dataset.xlsx');
+  }catch(err){ alert('No se pudo exportar: '+err.message); }
+});
+</script>
+{% endblock %}

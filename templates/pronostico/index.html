@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}4 · Pronósticos{% endblock %}
+{% block topbar %}4 · Pronósticos — Series de tiempo{% endblock %}
+{% block nav_prono %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Pronósticos</div>
+  <h1>🔮 Pronósticos</h1>
+  <p>Modela una serie de tiempo con métodos clásicos, evalúa su exactitud con métricas estándar,
+     genera intervalos de predicción y compara modelos para elegir el mejor.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Métodos y métricas</h3>
+  <p><b>Ingenuo:</b> el pronóstico es el último valor. <b>Promedio móvil:</b> media de las últimas k
+     observaciones. <b>SES:</b> promedio ponderado con pesos que decaen (α). <b>Holt:</b> agrega
+     tendencia (β). <b>Holt-Winters:</b> agrega estacionalidad (γ), aditiva o multiplicativa.</p>
+  <div class="formula">MAE = media|eₜ| · RMSE = √(media eₜ²) · MAPE = media|eₜ/yₜ|·100 · SMAPE = media(2|eₜ|/(|yₜ|+|ŷₜ|))·100 · MASE = MAE / MAE_ingenuo</div>
+  <p>Para una evaluación honesta reserva un <b>conjunto de prueba</b> (holdout): el modelo se ajusta
+     sin esos datos y se mide qué tan bien los predice.</p>
+</div>
+
+<div class="card">
+  <h2><span class="step">1</span> Serie y modelo</h2>
+  <div id="needdata"></div>
+  <div class="grid grid-3" id="controls">
+    <div class="field"><label for="col">Serie (variable numérica)</label><select id="col"></select></div>
+    <div class="field"><label for="model">Modelo</label>
+      <select id="model">
+        <option value="ingenuo">Ingenuo</option>
+        <option value="ingenuo_estacional">Ingenuo estacional</option>
+        <option value="promedio_movil">Promedio móvil</option>
+        <option value="ses" selected>Suavizamiento exp. simple (SES)</option>
+        <option value="holt">Holt (tendencia)</option>
+        <option value="holt_winters">Holt-Winters</option>
+      </select>
+    </div>
+    <div class="field"><label for="h">Horizonte (pasos a pronosticar)</label><input type="number" id="h" min="1" max="60" value="6"></div>
+
+    <div class="field p-ma p-hw p-sn" style="display:none"><label for="m">Periodo estacional m</label>
+      <input type="number" id="m" min="2" max="52" value="12"><span class="hint">12 = mensual, 4 = trimestral, 7 = diario/semanal</span></div>
+    <div class="field p-ma2" style="display:none"><label for="window">Ventana promedio móvil (k)</label><input type="number" id="window" min="1" value="3"></div>
+    <div class="field p-hw2" style="display:none"><label for="seasonal">Estacionalidad</label>
+      <select id="seasonal"><option value="add">Aditiva</option><option value="mul">Multiplicativa</option></select></div>
+    <div class="field p-holt p-hw3" style="display:none"><label class="check" style="margin-top:1.6rem"><input type="checkbox" id="damped"> Tendencia amortiguada (φ)</label></div>
+
+    <div class="field"><label for="holdout">Conjunto de prueba (holdout)</label><input type="number" id="holdout" min="0" max="40" value="6"><span class="hint">0 = usar toda la serie para ajustar</span></div>
+    <div class="field"><label for="conf">Confianza del intervalo</label>
+      <select id="conf"><option>80</option><option>90</option><option selected>95</option><option>99</option></select></div>
+    <div class="field" style="justify-content:flex-end"><button class="btn" id="btnRun">Pronosticar</button></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="btnCompare">Comparar modelos</button>
+  </div>
+  <div id="run-msg"></div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2 id="res-title">Pronóstico</h2>
+    <div class="chart-box tall"><canvas id="fcChart"></canvas></div>
+    <div id="params" class="small muted" style="margin-top:.7rem"></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <h2>Métricas de exactitud</h2>
+      <div class="table-wrap"><table id="metTable">
+        <thead><tr><th>Métrica</th><th>Ajuste (in-sample)</th><th>Prueba (holdout)</th></tr></thead>
+        <tbody></tbody></table></div>
+      <p class="small muted" style="margin-top:.5rem">MAPE/SMAPE en %. MASE &lt; 1 significa mejor que el método ingenuo.</p>
+    </div>
+    <div class="card">
+      <h2>Pronóstico e intervalos</h2>
+      <div class="table-wrap"><table id="fcTable">
+        <thead><tr><th>Paso</th><th>Pronóstico</th><th>Límite inf.</th><th>Límite sup.</th></tr></thead>
+        <tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<div id="compare" class="card hidden">
+  <h2>Comparación de modelos</h2>
+  <p class="card-sub" id="cmp-sub"></p>
+  <div class="table-wrap"><table id="cmpTable">
+    <thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>SMAPE</th><th>MASE</th></tr></thead>
+    <tbody></tbody></table></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+let fcChart,LAST=null,CTX={};
+
+function toggleParams(){
+  const mdl=$('model').value;
+  const show=(sel,on)=>document.querySelectorAll(sel).forEach(e=>e.style.display=on?'':'none');
+  show('.p-ma',false); show('.p-ma2',false); show('.p-hw',false); show('.p-hw2',false);
+  show('.p-hw3',false); show('.p-holt',false); show('.p-sn',false);
+  if(mdl==='promedio_movil') show('.p-ma2',true);
+  if(mdl==='ingenuo_estacional') show('.p-sn',true);
+  if(mdl==='holt') show('.p-holt',true);
+  if(mdl==='holt_winters'){ show('.p-hw',true); show('.p-hw2',true); show('.p-hw3',true); }
+}
+$('model').addEventListener('change',toggleParams);
+
+function initCols(){
+  if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return; }
+  const nums=PronoStat.numericColumns();
+  if(!nums.length){ $('needdata').innerHTML='<div class="alert alert-warn">El dataset no tiene columnas numéricas.</div>'; $('controls').style.display='none'; return; }
+  PSU.fillColumnSelect($('col'),nums);
+  toggleParams();
+}
+initCols();
+
+function collectParams(){
+  const mdl=$('model').value, p={};
+  if(mdl==='promedio_movil') p.window=parseInt($('window').value)||3;
+  if(mdl==='holt') p.damped=$('damped').checked;
+  if(mdl==='holt_winters'){ p.seasonal=$('seasonal').value; p.trend='add'; p.damped=$('damped').checked; }
+  return p;
+}
+
+$('btnRun').addEventListener('click', run);
+async function run(){
+  const col=$('col').value;
+  const y=PronoStat.numericValues(col);
+  const payload={y,model:$('model').value,h:parseInt($('h').value)||6,
+    m:parseInt($('m').value)||12,holdout:parseInt($('holdout').value)||0,
+    conf:parseInt($('conf').value),params:collectParams()};
+  $('run-msg').innerHTML='Ajustando modelo… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/pronostico/api/solve',payload);
+    LAST=r; CTX={col}; $('run-msg').innerHTML=''; render(r,col);
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+}
+
+function render(r,col){
+  $('results').classList.remove('hidden');
+  $('res-title').textContent=`${r.label} · ${col} · ${r.h} pasos`;
+
+  const n=r.n;
+  const labels=[]; for(let i=1;i<=n+r.h;i++) labels.push(i);
+  const hist=r.series.map((v,i)=>({x:i+1,y:v}));
+  const fitted=r.fitted.map((v,i)=> v===null?null:{x:i+1,y:v}).filter(Boolean);
+  const fc=r.forecast.map((v,i)=>({x:n+i+1,y:v}));
+  // conectar histórico con pronóstico
+  fc.unshift({x:n,y:r.series[n-1]});
+  const up=r.intervals.upper.map((v,i)=>({x:n+i+1,y:v}));
+  const lo=r.intervals.lower.map((v,i)=>({x:n+i+1,y:v}));
+  up.unshift({x:n,y:r.series[n-1]}); lo.unshift({x:n,y:r.series[n-1]});
+
+  const ds=[
+    {label:'Serie observada',data:hist,borderColor:'#0f766e',backgroundColor:'#0f766e',borderWidth:2,pointRadius:2,tension:.15,parsing:false},
+    {label:'Ajuste',data:fitted,borderColor:'#94a3b8',borderWidth:1.5,borderDash:[4,3],pointRadius:0,parsing:false},
+    {label:`IC ${r.intervals.conf}%`,data:up,borderColor:'rgba(109,40,217,.25)',backgroundColor:'rgba(109,40,217,.12)',
+       fill:'+1',pointRadius:0,borderWidth:0,parsing:false},
+    {label:'_lo',data:lo,borderColor:'rgba(109,40,217,.25)',pointRadius:0,borderWidth:0,parsing:false},
+    {label:'Pronóstico',data:fc,borderColor:'#6d28d9',borderWidth:2.5,pointRadius:2,parsing:false},
+  ];
+  if(r.test){
+    const start=n-r.test.size;
+    const tp=r.test.pred.map((v,i)=>({x:start+i+1,y:v}));
+    ds.push({label:'Predicción en prueba',data:tp,borderColor:'#b45309',borderWidth:2,borderDash:[6,3],pointRadius:2,parsing:false});
+  }
+  if(fcChart) fcChart.destroy();
+  fcChart=new Chart($('fcChart'),{type:'line',data:{datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,parsing:false,interaction:{mode:'nearest',intersect:false},
+      plugins:{legend:{position:'top',labels:{filter:it=>it.text!=='_lo'}},
+        title:{display:true,text:`${r.label} — ${col}`}},
+      scales:{x:{type:'linear',title:{display:true,text:'t (índice)'},ticks:{stepSize:1}},
+              y:{title:{display:true,text:col}}}}});
+
+  // params
+  $('params').innerHTML='<b>Parámetros del modelo:</b> '+
+    Object.entries(r.params).map(([k,v])=>`${k} = <span class="mono">${typeof v==='number'?PSU.fmt(v):v}</span>`).join(' · ')+
+    ` · σ residual = <span class="mono">${PSU.fmt(r.sigma)}</span>`;
+
+  // métricas
+  const im=r.insample_metrics, tm=r.test_metrics;
+  const order=['MAE','RMSE','MAPE','SMAPE','MASE'];
+  $('metTable').querySelector('tbody').innerHTML=order.map(k=>
+    `<tr><td><b>${k}</b></td><td class="num">${PSU.fmt(im[k])}</td><td class="num">${tm?PSU.fmt(tm[k]):'—'}</td></tr>`).join('');
+
+  // tabla pronóstico
+  $('fcTable').querySelector('tbody').innerHTML=r.forecast.map((v,i)=>
+    `<tr><td>t+${i+1}</td><td class="num">${PSU.fmt(v)}</td>
+      <td class="num">${PSU.fmt(r.intervals.lower[i])}</td>
+      <td class="num">${PSU.fmt(r.intervals.upper[i])}</td></tr>`).join('');
+}
+
+$('btnCompare').addEventListener('click', async ()=>{
+  const col=$('col').value, y=PronoStat.numericValues(col);
+  const payload={y,h:parseInt($('h').value)||6,m:parseInt($('m').value)||12,
+    holdout:parseInt($('holdout').value)||6,conf:parseInt($('conf').value)};
+  $('run-msg').innerHTML='Comparando modelos… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/pronostico/api/compare',payload);
+    $('run-msg').innerHTML=''; $('compare').classList.remove('hidden');
+    $('cmp-sub').textContent=`Criterio: ${r.criterion} · Evaluado sobre ${r.evaluated_on}.`;
+    const tb=$('cmpTable').querySelector('tbody'); tb.innerHTML='';
+    r.ranking.forEach(m=>{
+      const tr=document.createElement('tr');
+      if(m.ok){
+        if(m.model===r.best) tr.className='best-row';
+        const x=m.metrics;
+        tr.innerHTML=`<td><b>${m.label}</b></td><td class="num">${PSU.fmt(x.MAE)}</td>
+          <td class="num">${PSU.fmt(x.RMSE)}</td><td class="num">${PSU.fmt(x.MAPE)}</td>
+          <td class="num">${PSU.fmt(x.SMAPE)}</td><td class="num">${PSU.fmt(x.MASE)}</td>`;
+      }else{
+        tr.innerHTML=`<td><b>${m.label}</b></td><td colspan="5" class="small" style="color:#b91c1c;text-align:left">${m.error}</td>`;
+      }
+      tb.appendChild(tr);
+    });
+    $('compare').scrollIntoView({behavior:'smooth'});
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+
+$('btnExport').addEventListener('click', async ()=>{
+  if(!LAST) return;
+  try{ await PSU.downloadPost('/exportar/pronostico',{ctx:CTX,resultado:LAST},`pronostico_${LAST.model}.xlsx`); }
+  catch(err){ alert('No se pudo exportar: '+err.message); }
+});
+</script>
+{% endblock %}

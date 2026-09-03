@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}2 · Descriptiva{% endblock %}
+{% block topbar %}2 · Estadística descriptiva (monovariada){% endblock %}
+{% block nav_desc %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Descriptiva</div>
+  <h1>📏 Estadística descriptiva</h1>
+  <p>Resumen numérico y gráficos exploratorios de <b>una variable</b> numérica: tendencia central,
+     dispersión, forma de la distribución y valores atípicos.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Conceptos</h3>
+  <p><b>Tendencia central:</b> media (x̄), mediana y moda. <b>Dispersión:</b> desviación estándar (s),
+     varianza (s²), rango, rango intercuartílico (IQR) y coeficiente de variación (CV = s/x̄·100).</p>
+  <div class="formula">x̄ = (1/n)·Σxᵢ &nbsp;&nbsp; s² = Σ(xᵢ−x̄)²/(n−1) &nbsp;&nbsp; CV% = (s/x̄)·100</div>
+  <p><b>Forma:</b> la <i>asimetría</i> mide si la cola es a la derecha (+) o izquierda (−); la
+     <i>curtosis</i> (exceso) mide el peso de las colas frente a la normal (0). Un dato es
+     <b>atípico</b> si cae fuera de [Q1−1.5·IQR, Q3+1.5·IQR].</p>
+</div>
+
+<div class="card">
+  <h2><span class="step">1</span> Variable a analizar</h2>
+  <div id="needdata"></div>
+  <div class="grid grid-3" id="controls">
+    <div class="field">
+      <label for="col">Columna numérica</label>
+      <select id="col"></select>
+    </div>
+    <div class="field">
+      <label for="bins">N.º de intervalos (histograma)</label>
+      <input type="number" id="bins" min="3" max="40" placeholder="auto">
+      <span class="hint">Deja vacío para automático (√n).</span>
+    </div>
+    <div class="field" style="justify-content:flex-end">
+      <button class="btn" id="btnRun">Calcular</button>
+    </div>
+  </div>
+  <div id="run-msg"></div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>Resumen numérico</h2>
+    <div class="stat-grid" id="stats"></div>
+    <div id="extra" class="small muted" style="margin-top:.8rem"></div>
+    <div class="btn-row">
+      <button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Gráficos exploratorios</h2>
+    <div class="chart-grid">
+      <div>
+        <div class="section-title">Histograma y densidad</div>
+        <div class="chart-box"><canvas id="histChart"></canvas></div>
+      </div>
+      <div>
+        <div class="section-title">Diagrama de caja (boxplot)</div>
+        <div id="boxplot"></div>
+        <div class="section-title" style="margin-top:1rem">Función de distribución acumulada</div>
+        <div class="chart-box" style="height:180px"><canvas id="ecdfChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+let histChart, ecdfChart, LAST=null, LASTCOL='';
+
+function initCols(){
+  if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return; }
+  const nums = PronoStat.numericColumns();
+  if(!nums.length){ $('needdata').innerHTML='<div class="alert alert-warn">El dataset no tiene columnas numéricas. Revisa los tipos en el módulo Datos.</div>'; $('controls').style.display='none'; return; }
+  PSU.fillColumnSelect($('col'), nums);
+}
+initCols();
+
+$('btnRun').addEventListener('click', run);
+async function run(){
+  const col=$('col').value;
+  const vals=PronoStat.numericValues(col);
+  const bins=$('bins').value ? parseInt($('bins').value) : 'auto';
+  $('run-msg').innerHTML='Calculando… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/descriptiva/api/solve',{values:vals,bins});
+    LAST=r; LASTCOL=col; $('run-msg').innerHTML='';
+    render(r,col);
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+}
+
+function stat(k,v,u=''){ return `<div class="stat"><div class="k">${k}</div><div class="v">${PSU.fmt(v)}</div>${u?`<div class="u">${u}</div>`:''}</div>`; }
+
+function render(r,col){
+  $('results').classList.remove('hidden');
+  const s=r.summary;
+  $('stats').innerHTML =
+    stat('Media',s.media)+stat('Mediana',s.mediana)+
+    stat('Moda',s.moda.length?s.moda.map(m=>PSU.fmt(m)).join(', '):'—')+
+    stat('Desv. estándar',s.desv_std)+stat('Varianza',s.varianza)+
+    stat('Coef. variación',s.coef_var_pct,'%')+
+    stat('Mínimo',s.min)+stat('Q1',s.q1)+stat('Q3',s.q3)+stat('Máximo',s.max)+
+    stat('Rango',s.rango)+stat('IQR',s.iqr)+
+    stat('Asimetría',s.asimetria)+stat('Curtosis',s.curtosis)+
+    stat('Error estándar',s.error_std)+stat('n',r.n);
+  const [lo,hi]=s.ic95_media;
+  $('extra').innerHTML = `IC 95% para la media: [<b>${PSU.fmt(lo)}</b>, <b>${PSU.fmt(hi)}</b>] · `+
+    `Suma total: ${PSU.fmt(s.suma)} · Valores atípicos detectados: <b>${r.n_outliers}</b> `+
+    (r.n_outliers? `(${r.boxplot.outliers.map(o=>PSU.fmt(o)).join(', ')})`:'');
+
+  // Histograma + densidad (segundo eje)
+  const ds=[{type:'bar',label:'Frecuencia',data:r.hist.counts,backgroundColor:'#5eead4',
+             borderColor:'#0f766e',borderWidth:1,yAxisID:'y'}];
+  if(r.density){
+    const maxc=Math.max(...r.hist.counts), maxd=Math.max(...r.density.y);
+    // reescalar densidad al eje de frecuencia para superponer
+    const scaled=r.density.y.map(d=> d*maxc/maxd);
+    ds.push({type:'line',label:'Densidad (KDE)',
+             data:r.density.x.map((x,i)=>({x,y:scaled[i]})),
+             borderColor:'#6d28d9',borderWidth:2,pointRadius:0,tension:.3,yAxisID:'y',parsing:false});
+  }
+  if(histChart) histChart.destroy();
+  histChart=new Chart($('histChart'),{
+    data:{labels:r.hist.centers.map(c=>PSU.fmt(c,1)),datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'},title:{display:true,text:`Distribución de ${col}`}},
+      scales:{y:{title:{display:true,text:'Frecuencia'},beginAtZero:true},
+              x:{title:{display:true,text:col}}}}
+  });
+
+  drawBoxplot(r.boxplot);
+
+  // ECDF
+  const xs=PronoStat.numericValues(col).slice().sort((a,b)=>a-b);
+  const ec=xs.map((x,i)=>({x,y:(i+1)/xs.length}));
+  if(ecdfChart) ecdfChart.destroy();
+  ecdfChart=new Chart($('ecdfChart'),{type:'line',
+    data:{datasets:[{label:'F(x)',data:ec,stepped:true,borderColor:'#1d4ed8',pointRadius:0,parsing:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{type:'linear',title:{display:true,text:col}},y:{min:0,max:1,title:{display:true,text:'F(x)'}}}}
+  });
+}
+
+/* Boxplot horizontal en SVG (sin librerías extra) */
+function drawBoxplot(b){
+  const W=100, pad=6;
+  const lo=Math.min(b.whisker_lo,...(b.outliers.length?b.outliers:[b.min]));
+  const hi=Math.max(b.whisker_hi,...(b.outliers.length?b.outliers:[b.max]));
+  const span=(hi-lo)||1;
+  const X=v=>pad+(v-lo)/span*(W-2*pad);
+  const y=26, h=22;
+  let out=b.outliers.map(o=>`<circle cx="${X(o)}" cy="${y+h/2}" r="1.4" fill="#b91c1c"/>`).join('');
+  const svg=`
+  <svg viewBox="0 0 100 64" style="width:100%;height:150px">
+    <line x1="${X(b.whisker_lo)}" y1="${y+h/2}" x2="${X(b.q1)}" y2="${y+h/2}" stroke="#0f766e" stroke-width=".6"/>
+    <line x1="${X(b.q3)}" y1="${y+h/2}" x2="${X(b.whisker_hi)}" y2="${y+h/2}" stroke="#0f766e" stroke-width=".6"/>
+    <line x1="${X(b.whisker_lo)}" y1="${y+3}" x2="${X(b.whisker_lo)}" y2="${y+h-3}" stroke="#0f766e" stroke-width=".6"/>
+    <line x1="${X(b.whisker_hi)}" y1="${y+3}" x2="${X(b.whisker_hi)}" y2="${y+h-3}" stroke="#0f766e" stroke-width=".6"/>
+    <rect x="${X(b.q1)}" y="${y}" width="${X(b.q3)-X(b.q1)}" height="${h}" fill="#a7f3d0" stroke="#0f766e" stroke-width=".6"/>
+    <line x1="${X(b.median)}" y1="${y}" x2="${X(b.median)}" y2="${y+h}" stroke="#6d28d9" stroke-width="1"/>
+    ${out}
+    <text x="${X(b.min)}" y="12" font-size="4" fill="#64748b">${PSU.fmt(b.min,1)}</text>
+    <text x="${X(b.median)}" y="12" font-size="4" fill="#6d28d9" text-anchor="middle">Md ${PSU.fmt(b.median,1)}</text>
+    <text x="${X(b.max)}" y="12" font-size="4" fill="#64748b" text-anchor="end">${PSU.fmt(b.max,1)}</text>
+    <text x="${X(b.q1)}" y="${y+h+8}" font-size="3.6" fill="#334155" text-anchor="middle">Q1 ${PSU.fmt(b.q1,1)}</text>
+    <text x="${X(b.q3)}" y="${y+h+8}" font-size="3.6" fill="#334155" text-anchor="middle">Q3 ${PSU.fmt(b.q3,1)}</text>
+  </svg>`;
+  $('boxplot').innerHTML=svg;
+}
+
+$('btnExport').addEventListener('click', async ()=>{
+  if(!LAST) return;
+  try{
+    await PSU.downloadPost('/exportar/descriptiva',
+      {columna:LASTCOL, resultado:LAST}, `descriptiva_${LASTCOL}.xlsx`);
+  }catch(err){ alert('No se pudo exportar: '+err.message); }
+});
+</script>
+{% endblock %}

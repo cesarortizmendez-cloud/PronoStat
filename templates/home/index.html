@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Inicio{% endblock %}
+{% block topbar %}PronoStat · Laboratorio de Análisis de Datos{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>📊 PronoStat</h1>
+  <p>Laboratorio educativo para aprender <b>estadística</b>, <b>análisis de series de tiempo</b> y
+     <b>pronósticos</b>. Importa tus datos desde Excel o CSV y recórrelos por un flujo guiado:
+     descriptiva → regresión → pronósticos, con teoría, cálculo paso a paso y exportación a Excel.</p>
+</section>
+
+<div class="alert alert-info">
+  <b>Cómo se usa:</b> comienza en el módulo <a href="/datos/">1 · Datos</a> para cargar tu archivo.
+  El conjunto de datos queda disponible para el resto de los módulos en esta sesión del navegador.
+</div>
+
+<h2 class="section-title">Módulos · Versión 1</h2>
+<div class="modules">
+  <a class="mod-card" href="/datos/">
+    <div class="mod-icon">📥</div>
+    <h3>1 · Datos</h3>
+    <p>Importación y preparación del conjunto de datos.</p>
+    <ul class="mod-feats">
+      <li>Importar Excel (.xlsx) y CSV</li>
+      <li>Selección de hoja y campos</li>
+      <li>Detección de tipos de datos</li>
+      <li>Limpieza básica (nulos, duplicados)</li>
+    </ul>
+  </a>
+  <a class="mod-card" href="/descriptiva/">
+    <div class="mod-icon">📏</div>
+    <h3>2 · Estadística descriptiva <span class="pill pill-b">monovariado</span></h3>
+    <p>Resumen numérico y gráficos exploratorios de una variable.</p>
+    <ul class="mod-feats">
+      <li>Media, mediana, moda, desviación</li>
+      <li>Cuartiles, asimetría, curtosis</li>
+      <li>Histograma, boxplot, densidad</li>
+    </ul>
+  </a>
+  <a class="mod-card" href="/regresion/">
+    <div class="mod-icon">📈</div>
+    <h3>3 · Regresión <span class="pill pill-b">bivariado</span></h3>
+    <p>Ajuste de modelos entre dos variables.</p>
+    <ul class="mod-feats">
+      <li>Lineal, exponencial, logarítmico</li>
+      <li>Polinómico de grado n</li>
+      <li>R², R² ajustado, residuos</li>
+    </ul>
+  </a>
+  <a class="mod-card" href="/pronostico/">
+    <div class="mod-icon">🔮</div>
+    <h3>4 · Pronósticos <span class="pill pill-a">series</span></h3>
+    <p>Modelos de series de tiempo y comparación.</p>
+    <ul class="mod-feats">
+      <li>Ingenuo, promedio móvil, SES</li>
+      <li>Holt y Holt-Winters</li>
+      <li>MAE · RMSE · MAPE · SMAPE · MASE</li>
+      <li>Intervalos de predicción</li>
+    </ul>
+  </a>
+</div>
+
+<section class="roadmap">
+  <h2 class="section-title">Hoja de ruta del proyecto</h2>
+  <div class="roadmap-cols">
+    <div class="rm v1">
+      <h4>✅ Versión 1 · Base</h4>
+      <ol>
+        <li>Importación de Excel y CSV</li>
+        <li>Selección de hoja y campos</li>
+        <li>Tipos de datos</li>
+        <li>Limpieza básica</li>
+        <li>Estadística descriptiva</li>
+        <li>Gráficos exploratorios</li>
+        <li>Ajuste lineal, exp., log., polinómico</li>
+        <li>Método ingenuo y promedio móvil</li>
+        <li>Suavizamiento exponencial</li>
+        <li>Holt y Holt-Winters</li>
+        <li>Métricas MAE/RMSE/MAPE/SMAPE/MASE</li>
+        <li>Intervalos de predicción</li>
+        <li>Comparación de modelos</li>
+        <li>Exportación completa a Excel</li>
+      </ol>
+    </div>
+    <div class="rm v2">
+      <h4>🔜 Versión 2 · Series avanzadas</h4>
+      <ol start="15">
+        <li>Descomposición clásica y STL</li>
+        <li>ACF y PACF</li>
+        <li>Pruebas ADF y KPSS</li>
+        <li>AR, MA, ARMA y ARIMA</li>
+        <li>SARIMA</li>
+        <li>Validación con origen móvil</li>
+        <li>Diagnóstico de residuos</li>
+        <li>Selección automática</li>
+      </ol>
+    </div>
+    <div class="rm v3">
+      <h4>🔜 Versión 3 · Plataforma pro</h4>
+      <ol start="23">
+        <li>SARIMAX y variables externas</li>
+        <li>Demanda intermitente</li>
+        <li>Ensamble de modelos</li>
+        <li>Pronósticos múltiples</li>
+        <li>Pronósticos jerárquicos</li>
+        <li>Simulación y escenarios</li>
+        <li>Informes automáticos</li>
+        <li>PWA y funcionamiento sin conexión</li>
+      </ol>
+    </div>
+  </div>
+</section>
+{% endblock %}

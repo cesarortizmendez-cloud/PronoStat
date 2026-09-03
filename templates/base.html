@@ -10,7 +10,201 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="{% static 'icons/icon-192.png' %}">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/pronostat.css' %}">
+  <style>{% verbatim %}
+/* ===========================================================================
+   PronoStat — Sistema de diseño
+   Laboratorio educativo de análisis de datos, series de tiempo y pronósticos.
+   =========================================================================== */
+:root{
+  --teal:#0f766e; --teal-d:#0b5850; --teal-l:#14b8a6;
+  --purple:#6d28d9; --purple-l:#ede9fe; --purple-b:#c4b5fd;
+  --amber:#b45309; --amber-l:#fef3c7;
+  --green:#15803d; --green-l:#dcfce7;
+  --red:#b91c1c; --red-l:#fee2e2;
+  --blue:#1d4ed8; --blue-l:#dbeafe;
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --line-d:#cbd5e1;
+  --bg:#f1f5f9; --card:#ffffff;
+  --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.05);
+  --sidebar-w:264px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);font-size:15px;line-height:1.55}
+a{color:var(--teal)}
+
+/* ---------- Sidebar ---------- */
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:#0b3d38;
+  color:#d5efec;display:flex;flex-direction:column;z-index:40;transition:transform .25s ease}
+.brand{display:flex;gap:.7rem;align-items:center;padding:1.1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.09)}
+.brand-mark{font-size:1.7rem}
+.brand-name{font-weight:800;color:#fff;font-size:1.15rem;letter-spacing:.2px}
+.brand-sub{font-size:.68rem;color:#7fd8cc;text-transform:uppercase;letter-spacing:.5px}
+.nav{flex:1;overflow-y:auto;padding:.8rem .7rem}
+.nav-group{font-size:.66rem;text-transform:uppercase;letter-spacing:.8px;color:#5fb3a8;margin:1rem .5rem .4rem}
+.nav-link{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.6rem .7rem;border-radius:10px;
+  color:#c9e9e3;text-decoration:none;font-weight:500;font-size:.92rem;margin-bottom:.15rem;transition:background .15s}
+.nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-link.active{background:var(--teal-l);color:#04302b;font-weight:700}
+.badge-num{margin-left:auto;font-size:.62rem;background:rgba(255,255,255,.14);padding:.1rem .4rem;border-radius:6px;color:#a7f3d0}
+.tag{margin-left:auto;font-size:.6rem;padding:.1rem .4rem;border-radius:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.tag.mono{background:#1e3a5f;color:#93c5fd}
+.tag.bi{background:#3b2f5f;color:#c4b5fd}
+.tag.ts{background:#4a3410;color:#fcd34d}
+.sidebar-foot{padding:.9rem 1rem;border-top:1px solid rgba(255,255,255,.09)}
+.ds-status{font-size:.74rem;padding:.45rem .6rem;border-radius:8px;font-weight:600;margin-bottom:.5rem}
+.ds-empty{background:rgba(255,255,255,.06);color:#8fb8b1}
+.ds-loaded{background:var(--green-l);color:var(--green)}
+.ver{font-size:.66rem;color:#5fb3a8}
+
+/* ---------- Main ---------- */
+.main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem}
+.topbar-title{font-weight:700;font-size:1.05rem}
+.topbar-right{display:flex;align-items:center;gap:1rem}
+.author{font-size:.78rem;color:var(--muted)}
+.btn-install{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-weight:600;cursor:pointer;font-size:.82rem}
+.content{flex:1;padding:1.6rem;max-width:1180px;width:100%;margin:0 auto}
+.footer{border-top:1px solid var(--line);padding:1rem 1.4rem;color:var(--muted);font-size:.8rem;text-align:center}
+
+.menu-toggle{display:none;position:fixed;top:.7rem;left:.7rem;z-index:50;background:var(--teal);color:#fff;
+  border:none;border-radius:9px;width:42px;height:42px;font-size:1.3rem;cursor:pointer}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
+.overlay.show{display:block}
+
+/* ---------- Cabecera de módulo ---------- */
+.page-head{margin-bottom:1.3rem}
+.page-head h1{font-size:1.7rem;margin:0 0 .3rem;letter-spacing:-.3px}
+.page-head p{color:var(--muted);margin:0;max-width:70ch}
+.crumbs{font-size:.75rem;color:var(--muted);margin-bottom:.5rem}
+
+/* ---------- Recuadro de teoría (morado, estilo IO-Lab) ---------- */
+.theory{background:var(--purple-l);border:1px solid var(--purple-b);border-left:4px solid var(--purple);
+  border-radius:var(--radius);padding:1.1rem 1.3rem;margin-bottom:1.4rem}
+.theory h3{margin:0 0 .5rem;color:var(--purple);font-size:1rem;display:flex;align-items:center;gap:.4rem}
+.theory p{margin:.4rem 0;font-size:.9rem}
+.theory .formula{background:#fff;border:1px dashed var(--purple-b);border-radius:8px;padding:.5rem .8rem;
+  font-family:var(--mono);font-size:.86rem;margin:.5rem 0;overflow-x:auto}
+.theory ul{margin:.4rem 0 .4rem 1.1rem;padding:0;font-size:.88rem}
+
+/* ---------- Cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.2rem 1.3rem;
+  box-shadow:var(--shadow);margin-bottom:1.3rem}
+.card h2{font-size:1.1rem;margin:0 0 .9rem;display:flex;align-items:center;gap:.5rem}
+.card h2 .step{background:var(--teal);color:#fff;width:26px;height:26px;border-radius:50%;display:inline-flex;
+  align-items:center;justify-content:center;font-size:.8rem;font-weight:700}
+.card-sub{color:var(--muted);font-size:.85rem;margin:-.5rem 0 1rem}
+
+/* ---------- Formularios ---------- */
+.grid{display:grid;gap:1rem}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-size:.8rem;font-weight:600;color:#334155}
+.field .hint{font-size:.72rem;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{font:inherit;padding:.55rem .7rem;border:1px solid var(--line-d);
+  border-radius:9px;background:#fff;width:100%;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--teal-l);outline-offset:0;border-color:var(--teal)}
+textarea{resize:vertical;min-height:80px;font-family:var(--mono);font-size:.85rem}
+.check{display:flex;align-items:center;gap:.5rem;font-size:.86rem}
+.check input{width:auto}
+
+.btn{background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.65rem 1.2rem;font-weight:600;
+  cursor:pointer;font-size:.92rem;transition:background .15s}
+.btn:hover{background:var(--teal-d)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:#fff;color:var(--teal);border:1px solid var(--line-d)}
+.btn-ghost:hover{background:#f8fafc}
+.btn-excel{background:var(--green)}
+.btn-excel:hover{background:#166534}
+.btn-row{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+
+/* ---------- Tablas ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:.5rem .7rem;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{background:#f8fafc;font-weight:700;color:#334155;position:sticky;top:0}
+tbody tr:hover{background:#f8fafc}
+td.num{font-family:var(--mono)}
+.best-row{background:var(--green-l)!important;font-weight:700}
+
+/* ---------- Métricas / stats ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem}
+.stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem}
+.stat .k{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat .v{font-size:1.25rem;font-weight:700;font-family:var(--mono);margin-top:.15rem}
+.stat .u{font-size:.7rem;color:var(--muted)}
+
+/* ---------- Chips / pills ---------- */
+.pill{display:inline-block;padding:.2rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600}
+.pill-g{background:var(--green-l);color:var(--green)}
+.pill-a{background:var(--amber-l);color:var(--amber)}
+.pill-r{background:var(--red-l);color:var(--red)}
+.pill-b{background:var(--blue-l);color:var(--blue)}
+
+/* ---------- Alertas ---------- */
+.alert{border-radius:10px;padding:.7rem 1rem;font-size:.86rem;margin:.8rem 0;border:1px solid}
+.alert-info{background:var(--blue-l);border-color:#93c5fd;color:#1e40af}
+.alert-warn{background:var(--amber-l);border-color:#fcd34d;color:#92400e}
+.alert-err{background:var(--red-l);border-color:#fca5a5;color:#991b1b}
+.alert-ok{background:var(--green-l);border-color:#86efac;color:#166534}
+
+/* ---------- Chart ---------- */
+.chart-box{position:relative;height:340px;margin-top:.5rem}
+.chart-box.tall{height:420px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+
+/* ---------- Utilidades ---------- */
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+.small{font-size:.8rem}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.section-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+  margin:1.3rem 0 .6rem;font-weight:700}
+
+/* ---------- Catálogo (home) ---------- */
+.hero{background:linear-gradient(135deg,#0b3d38,#0f766e);color:#fff;border-radius:var(--radius);
+  padding:2rem 2rem;margin-bottom:1.6rem}
+.hero h1{margin:0 0 .5rem;font-size:2rem}
+.hero p{margin:0;max-width:60ch;color:#c9e9e3}
+.modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
+.mod-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.3rem;
+  text-decoration:none;color:inherit;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;display:block}
+.mod-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(15,23,42,.12)}
+.mod-icon{font-size:1.9rem}
+.mod-card h3{margin:.5rem 0 .3rem;font-size:1.1rem}
+.mod-card p{margin:0;color:var(--muted);font-size:.85rem}
+.mod-feats{margin:.7rem 0 0;padding:0;list-style:none;font-size:.78rem;color:#475569}
+.mod-feats li{padding:.15rem 0 .15rem 1.1rem;position:relative}
+.mod-feats li:before{content:"›";position:absolute;left:0;color:var(--teal);font-weight:700}
+.roadmap{margin-top:2rem}
+.roadmap-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.rm{border:1px solid var(--line);border-radius:12px;padding:1rem;background:#fff}
+.rm.v1{border-top:3px solid var(--teal)}
+.rm.v2{border-top:3px solid var(--purple)}
+.rm.v3{border-top:3px solid var(--amber)}
+.rm h4{margin:.2rem 0 .6rem}
+.rm ol{margin:0;padding-left:1.2rem;font-size:.8rem;color:#475569}
+.rm ol li{margin:.15rem 0}
+
+/* ---------- Responsivo ---------- */
+@media (max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-toggle{display:block}
+  .topbar{padding-left:4rem}
+  .grid-2,.grid-3,.chart-grid,.roadmap-cols{grid-template-columns:1fr}
+  .author{display:none}
+}
+
+{% endverbatim %}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -58,8 +252,162 @@
     </footer>
   </main>
 
-  <script src="{% static 'js/data-store.js' %}"></script>
-  <script src="{% static 'js/pwa-install.js' %}"></script>
+  <script>{% verbatim %}
+/* ===========================================================================
+   PronoStat — Store de datos compartido entre módulos
+   El dataset vive en el navegador (sessionStorage). Arquitectura stateless:
+   cada módulo lee el dataset y envía las columnas relevantes a su solve_api.
+   =========================================================================== */
+(function (global) {
+  const KEY = 'pronostat_dataset';
+
+  const Store = {
+    /* dataset = { source, sheet, columns:[{name,type}], rows:[{col:val,...}], meta } */
+    save(dataset) {
+      dataset.savedAt = new Date().toISOString();
+      sessionStorage.setItem(KEY, JSON.stringify(dataset));
+      this.refreshBadge();
+    },
+    get() {
+      const raw = sessionStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : null;
+    },
+    has() { return !!sessionStorage.getItem(KEY); },
+    clear() { sessionStorage.removeItem(KEY); this.refreshBadge(); },
+
+    columns() { const d = this.get(); return d ? d.columns : []; },
+    columnNames() { return this.columns().map(c => c.name); },
+    numericColumns() { return this.columns().filter(c => c.type === 'numérico').map(c => c.name); },
+
+    /* Devuelve un array con los valores de una columna (respeta el orden de filas). */
+    values(name) {
+      const d = this.get(); if (!d) return [];
+      return d.rows.map(r => r[name]);
+    },
+    /* Valores numéricos válidos (descarta null/NaN). */
+    numericValues(name) {
+      return this.values(name).map(Number).filter(v => !Number.isNaN(v) && v !== null);
+    },
+
+    refreshBadge() {
+      const el = document.getElementById('ds-status');
+      if (!el) return;
+      const d = this.get();
+      if (d) {
+        el.className = 'ds-status ds-loaded';
+        el.textContent = `✔ ${d.rows.length} filas · ${d.columns.length} campos`;
+        el.title = `${d.source || 'dataset'}${d.sheet ? ' · ' + d.sheet : ''}`;
+      } else {
+        el.className = 'ds-status ds-empty';
+        el.textContent = 'Sin datos cargados';
+      }
+    }
+  };
+
+  /* --------- Utilidades compartidas --------- */
+  const Util = {
+    fmt(x, dec = 4) {
+      if (x === null || x === undefined || (typeof x === 'number' && Number.isNaN(x))) return '—';
+      if (typeof x !== 'number') return x;
+      if (!isFinite(x)) return x > 0 ? '∞' : '-∞';
+      if (Math.abs(x) !== 0 && (Math.abs(x) < 1e-4 || Math.abs(x) >= 1e7))
+        return x.toExponential(3);
+      return x.toLocaleString('es-CL', { maximumFractionDigits: dec });
+    },
+    async postJSON(url, payload) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+      return data;
+    },
+    /* Descarga un archivo devuelto por un endpoint POST (blob). */
+    async downloadPost(url, payload, filename) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        let msg = 'HTTP ' + res.status;
+        try { const j = await res.json(); msg = j.error || msg; } catch (e) {}
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+    },
+    /* Llena un <select> con nombres de columnas. */
+    fillColumnSelect(sel, names, { onlyNumeric = false, selectedIndex = 0 } = {}) {
+      if (!sel) return;
+      sel.innerHTML = '';
+      if (!names.length) {
+        sel.innerHTML = '<option value="">(sin columnas)</option>';
+        return;
+      }
+      names.forEach((n, i) => {
+        const o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        sel.appendChild(o);
+      });
+      sel.selectedIndex = Math.min(selectedIndex, names.length - 1);
+    },
+    /* Muestra un aviso "carga datos primero" si no hay dataset. */
+    requireDataset(containerId) {
+      if (Store.has()) return true;
+      const c = document.getElementById(containerId);
+      if (c) c.innerHTML =
+        '<div class="alert alert-warn">Aún no has cargado datos. ' +
+        'Ve al módulo <a href="/datos/"><b>1 · Datos</b></a> para importar tu Excel o CSV. ' +
+        'También puedes usar el ejemplo incluido en cada módulo.</div>';
+      return false;
+    }
+  };
+
+  global.PronoStat = Store;
+  global.PSU = Util;
+  document.addEventListener('DOMContentLoaded', () => Store.refreshBadge());
+})(window);
+
+{% endverbatim %}</script>
+  <script>{% verbatim %}
+/* PronoStat — instalación PWA + registro del service worker */
+(function () {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+    });
+  }
+  let deferred = null;
+  const btn = document.getElementById('pwa-install');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferred = e;
+    if (btn) btn.hidden = false;
+  });
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      if (!deferred) {
+        // iOS: no soporta beforeinstallprompt
+        alert('En iPhone/iPad: abre en Safari → Compartir → “Agregar a pantalla de inicio”.');
+        return;
+      }
+      deferred.prompt();
+      await deferred.userChoice;
+      deferred = null;
+      btn.hidden = true;
+    });
+  }
+  window.addEventListener('appinstalled', () => { if (btn) btn.hidden = true; });
+})();
+
+{% endverbatim %}</script>
   <script>
     // Menú móvil
     const mt = document.getElementById('menu-toggle');

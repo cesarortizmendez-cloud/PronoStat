@@ -1,13 +1,9 @@
 {
   "version": 2,
   "builds": [
-    { "src": "pronostat/wsgi.py", "use": "@vercel/python" },
-    { "src": "build_files.sh", "use": "@vercel/static-build", "config": { "distDir": "staticfiles_build" } }
+    { "src": "pronostat/wsgi.py", "use": "@vercel/python" }
   ],
   "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/manifest.json", "dest": "/static/manifest.json" },
-    { "src": "/service-worker.js", "dest": "/static/service-worker.js" },
     { "src": "/(.*)", "dest": "pronostat/wsgi.py" }
   ]
 }

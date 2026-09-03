@@ -8,20 +8,38 @@ from django.conf import settings
 import os
 
 
-def _read_static(rel_path):
-    full = os.path.join(settings.BASE_DIR, 'static', rel_path)
-    with open(full, 'r', encoding='utf-8') as f:
-        return f.read()
+_MANIFEST = '''{
+  "name": "PronoStat - Analisis de Datos y Pronosticos",
+  "short_name": "PronoStat",
+  "description": "Laboratorio educativo de estadistica, series de tiempo y pronosticos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f766e",
+  "lang": "es",
+  "icons": []
+}'''
+
+_SERVICE_WORKER = '''
+self.addEventListener("install", function(e){ self.skipWaiting(); });
+self.addEventListener("activate", function(e){ self.clients.claim(); });
+self.addEventListener("fetch", function(e){
+  var req = e.request;
+  if (req.method !== "GET") return;
+  e.respondWith(fetch(req).catch(function(){ return caches.match(req); }));
+});
+'''
 
 
 @never_cache
 def manifest(request):
-    return HttpResponse(_read_static('manifest.json'), content_type='application/manifest+json')
+    return HttpResponse(_MANIFEST, content_type='application/manifest+json')
 
 
 @never_cache
 def service_worker(request):
-    resp = HttpResponse(_read_static('service-worker.js'), content_type='application/javascript')
+    resp = HttpResponse(_SERVICE_WORKER, content_type='application/javascript')
     resp['Service-Worker-Allowed'] = '/'
     return resp
 

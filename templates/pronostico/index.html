@@ -21,6 +21,18 @@
      sin esos datos y se mide qué tan bien los predice.</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Símbolos y parámetros</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>yₜ</b>: valor observado en el periodo t · <b>ŷₜ</b>: valor pronosticado · <b>eₜ = yₜ − ŷₜ</b>: error de pronóstico</p>
+    <p><b>h</b>: horizonte (nº de periodos a pronosticar) · <b>m</b>: periodo estacional (12 mensual, 4 trimestral, 7 semanal) · <b>k</b>: ventana del promedio móvil</p>
+    <p><b>α</b> (nivel), <b>β</b> (tendencia), <b>γ</b> (estacionalidad): parámetros de suavizamiento, entre 0 y 1 (más alto = más peso a lo reciente) · <b>φ</b>: amortiguación de la tendencia</p>
+    <p><b>MAE</b>: error absoluto medio · <b>RMSE</b>: raíz del error cuadrático medio (penaliza errores grandes) · ambos en unidades de la serie</p>
+    <p><b>MAPE / SMAPE</b>: error porcentual (medio / simétrico), en % · <b>MASE</b>: error relativo al método ingenuo (<b>&lt;1</b> = mejor que el ingenuo)</p>
+    <p><b>Intervalo de predicción</b>: banda dentro de la cual se espera que caiga el valor real con la confianza elegida (80/90/95/99%)</p>
+  </div>
+</details>
+
 <div class="card">
   <h2><span class="step">1</span> Serie y modelo</h2>
   <div id="needdata"></div>
@@ -57,6 +69,10 @@
 </div>
 
 <div id="results" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h2>🧭 Interpretación de resultados</h2>
+    <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
   <div class="card">
     <h2 id="res-title">Pronóstico</h2>
     <div class="chart-box tall"><canvas id="fcChart"></canvas></div>
@@ -87,6 +103,7 @@
   <div class="table-wrap"><table id="cmpTable">
     <thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>SMAPE</th><th>MASE</th></tr></thead>
     <tbody></tbody></table></div>
+  <div id="cmp-interp" class="small" style="margin-top:.6rem;line-height:1.6"></div>
 </div>
 {% endblock %}
 
@@ -140,6 +157,7 @@ async function run(){
 
 function render(r,col){
   $('results').classList.remove('hidden');
+  document.getElementById('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
   $('res-title').textContent=`${r.label} · ${col} · ${r.h} pasos`;
 
   const n=r.n;
@@ -215,6 +233,7 @@ $('btnCompare').addEventListener('click', async ()=>{
       }
       tb.appendChild(tr);
     });
+    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">🔹 ${t}</p>`).join('');
     $('compare').scrollIntoView({behavior:'smooth'});
   }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 });

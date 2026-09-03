@@ -21,6 +21,17 @@
      <b>atípico</b> si cae fuera de [Q1−1.5·IQR, Q3+1.5·IQR].</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Símbolos y parámetros</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>n</b>: tamaño de la muestra · <b>x̄</b>: media (promedio) · <b>Md</b>: mediana · <b>Moda</b>: valor más frecuente</p>
+    <p><b>s</b>: desviación estándar muestral · <b>s²</b>: varianza · <b>CV</b>: coeficiente de variación = (s/x̄)·100 · <b>ES</b>: error estándar = s/√n</p>
+    <p><b>Q1, Q3</b>: primer y tercer cuartil · <b>IQR</b>: rango intercuartílico = Q3 − Q1 · <b>Rango</b>: máx − mín</p>
+    <p><b>Asimetría</b>: 0 = simétrica, + = cola derecha, − = cola izquierda · <b>Curtosis (exceso)</b>: 0 ≈ normal, + = colas pesadas, − = colas ligeras</p>
+    <p><b>IC 95%</b>: intervalo de confianza donde se estima que está la media poblacional con 95% de confianza · <b>Atípico</b>: fuera de [Q1−1.5·IQR, Q3+1.5·IQR]</p>
+  </div>
+</details>
+
 <div class="card">
   <h2><span class="step">1</span> Variable a analizar</h2>
   <div id="needdata"></div>
@@ -42,6 +53,10 @@
 </div>
 
 <div id="results" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h2>🧭 Interpretación de resultados</h2>
+    <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
   <div class="card">
     <h2>Resumen numérico</h2>
     <div class="stat-grid" id="stats"></div>
@@ -99,6 +114,7 @@ function stat(k,v,u=''){ return `<div class="stat"><div class="k">${k}</div><div
 
 function render(r,col){
   $('results').classList.remove('hidden');
+  document.getElementById('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
   const s=r.summary;
   $('stats').innerHTML =
     stat('Media',s.media)+stat('Mediana',s.mediana)+

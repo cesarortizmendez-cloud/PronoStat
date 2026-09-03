@@ -76,6 +76,24 @@ def _footer(ws, row):
             value=f"PronoStat · generado {datetime.now():%Y-%m-%d %H:%M} · Dr. César Ortiz Méndez · USACH").font = SUB_FONT
 
 
+def _interp_sheet(wb, res, title="Interpretación"):
+    """Agrega una hoja con la interpretación educativa de los resultados."""
+    lines = (res or {}).get("interpretacion") or []
+    if not lines:
+        return
+    ws = wb.create_sheet(title)
+    ws.cell(row=1, column=1, value="Interpretación de resultados").font = TITLE_FONT
+    ws.cell(row=2, column=1, value="Lectura en lenguaje claro de los valores obtenidos.").font = SUB_FONT
+    r = 4
+    for line in lines:
+        c = ws.cell(row=r, column=1, value="•  " + line)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.row_dimensions[r].height = 34
+        r += 1
+    ws.column_dimensions['A'].width = 115
+    _footer(ws, r)
+
+
 # --------------------------------------------------------------------------- #
 def build_dataset(columns, rows, source="dataset"):
     wb = Workbook()
@@ -136,6 +154,7 @@ def build_descriptiva(columna, res):
         ws2.cell(row=rr, column=3, value=h["counts"][i]).border = BORDER
         rr += 1
     _autosize(ws2)
+    _interp_sheet(wb, res)
     return _save(wb)
 
 
@@ -178,6 +197,7 @@ def build_regresion(ctx, res):
         for p in res["predictions"]:
             _num(ws3, rr, 1, p["x"]); _num(ws3, rr, 2, p["y"]); rr += 1
         _autosize(ws3)
+    _interp_sheet(wb, res)
     return _save(wb)
 
 
@@ -236,4 +256,5 @@ def build_pronostico(ctx, res):
         for i in range(len(t["actual"])):
             _num(ws4, rr, 1, t["actual"][i]); _num(ws4, rr, 2, t["pred"][i]); rr += 1
         _autosize(ws4)
+    _interp_sheet(wb, res)
     return _save(wb)

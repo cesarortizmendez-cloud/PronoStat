@@ -102,6 +102,37 @@ def fit(x, y, model="lineal", degree=2, predict_x=None):
     met = _metrics(y, yhat, npar)
     resid = (y - yhat)
 
+    # ------------------- Interpretación automática -------------------
+    interp = []
+    r2 = met["r2"]
+    if r2 == r2:  # no es NaN
+        if r2 >= 0.9:
+            cal = "excelente"
+        elif r2 >= 0.7:
+            cal = "bueno"
+        elif r2 >= 0.5:
+            cal = "moderado"
+        else:
+            cal = "débil"
+        interp.append(f"El modelo {model} explica el {r2*100:.1f}% de la variabilidad de Y "
+                      f"(R² = {r2:.3f}); la calidad del ajuste es {cal}.")
+    interp.append(f"Ecuación ajustada: {eq}")
+    if model == "lineal":
+        b = params.get("b (pendiente)", float('nan'))
+        interp.append(f"Pendiente b = {b:.3g}: por cada aumento de 1 unidad en X, Y varía en promedio {b:+.3g} unidades.")
+    elif model == "exponencial":
+        b = params.get("b (tasa)", float('nan'))
+        tendencia = "crece" if b > 0 else "decrece"
+        interp.append(f"Tasa b = {b:.3g}: Y {tendencia} exponencialmente; al subir X en 1, Y se multiplica por e^{b:.3g} ≈ {math.exp(b):.3g}.")
+    elif model == "logarítmico":
+        b = params.get("b", float('nan'))
+        interp.append(f"Coeficiente b = {b:.3g}: Y cambia {b:.3g} unidades por cada aumento de 1 en ln(X); es un crecimiento que se desacelera.")
+    elif model == "polinómico":
+        interp.append("El polinomio captura la curvatura de la relación. Cuidado con grados altos: pueden sobreajustar (compara con el R² ajustado).")
+    interp.append(f"RMSE = {met['rmse']:.3g} (en unidades de Y): magnitud media de los residuos, es decir cuánto se aleja típicamente la predicción del valor real.")
+    if met["r2_adj"] == met["r2_adj"]:
+        interp.append(f"R² ajustado = {met['r2_adj']:.3f}: penaliza el número de parámetros; es el indicador adecuado para comparar modelos de distinta complejidad.")
+
     predictions = None
     if predict_x:
         predictions = []
@@ -122,6 +153,7 @@ def fit(x, y, model="lineal", degree=2, predict_x=None):
         "fitted": [float(v) for v in yhat],
         "residuals": [float(v) for v in resid],
         "predictions": predictions,
+        "interpretacion": interp,
     }
 
 
@@ -141,4 +173,12 @@ def compare(x, y, models=None, degree=2):
     key = lambda r: (r["r2_adj"] if r["r2_adj"] == r["r2_adj"] else r["r2"])
     ok.sort(key=key, reverse=True)
     best = ok[0]["model"] if ok else None
-    return {"ranking": out, "best": best}
+    interp = []
+    if best:
+        b = ok[0]
+        interp.append(f"El mejor ajuste es el modelo «{best}» (R² ajustado = {b['r2_adj']:.3f}, RMSE = {b['rmse']:.3g}).")
+        interp.append("El ranking usa el R² ajustado porque equilibra bondad de ajuste y simplicidad. "
+                      "Antes de decidir, verifica también que los residuos no muestren un patrón claro.")
+    else:
+        interp.append("Ningún modelo pudo ajustarse a estos datos; revisa los requisitos (exponencial: Y>0; logarítmico: X>0).")
+    return {"ranking": out, "best": best, "interpretacion": interp}

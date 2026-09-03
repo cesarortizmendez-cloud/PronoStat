@@ -275,8 +275,39 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     grow = model in ("ingenuo", "ses", "holt", "holt_winters")
     pi = _intervals(forecast, sigma, conf, grow)
 
+    # ------------------- Interpretación automática -------------------
+    _desc = {
+        "ingenuo": "El pronóstico repite el último valor observado; sirve como línea base de comparación.",
+        "ingenuo_estacional": "El pronóstico repite el valor del mismo periodo del ciclo anterior (m atrás).",
+        "promedio_movil": "El pronóstico es el promedio de las últimas k observaciones: suaviza el ruido pero no capta tendencia ni estacionalidad.",
+        "ses": "Suavizamiento exponencial simple: promedio ponderado que da más peso a lo reciente. Apto para series sin tendencia ni estacionalidad.",
+        "holt": "Holt agrega una componente de tendencia, por lo que proyecta un crecimiento o decrecimiento sostenido.",
+        "holt_winters": "Holt-Winters modela nivel, tendencia y estacionalidad: es adecuado cuando la serie repite un patrón cada m periodos.",
+    }
+    interp = [_desc.get(model, "")]
+    p = res["params"]
+    if p.get("alpha") == p.get("alpha") and "alpha" in p:
+        react = "reacciona rápido a los cambios recientes" if p["alpha"] > 0.5 else "es estable y reacciona con lentitud a los cambios"
+        interp.append(f"α (nivel) = {p['alpha']:.3f}: {react}.")
+    if "beta" in p and p.get("beta") == p.get("beta"):
+        interp.append(f"β (tendencia) = {p['beta']:.3f}: qué tan rápido se actualiza la pendiente de la serie.")
+    if "gamma" in p and p.get("gamma") == p.get("gamma"):
+        interp.append(f"γ (estacionalidad) = {p['gamma']:.3f}: qué tan rápido se actualiza el patrón estacional.")
+    _met = test_metrics or insample
+    _origen = "sobre el conjunto de prueba (holdout)" if test_metrics else "sobre el ajuste in-sample"
+    if _met["MAPE"] == _met["MAPE"]:
+        mp = _met["MAPE"]
+        q = "excelente" if mp < 10 else ("buena" if mp < 20 else ("aceptable" if mp < 50 else "pobre"))
+        interp.append(f"El MAPE {_origen} es {mp:.1f}%: exactitud {q} (guía: <10% excelente, 10–20% buena, 20–50% aceptable, >50% pobre).")
+    if _met["MASE"] == _met["MASE"]:
+        cmp_ = "mejor" if _met["MASE"] < 1 else "peor"
+        interp.append(f"El MASE es {_met['MASE']:.2f}: el modelo pronostica {cmp_} que el método ingenuo (MASE < 1 significa que lo supera).")
+    interp.append(f"Los intervalos al {conf}% se ensanchan con el horizonte porque la incertidumbre crece al alejarse en el tiempo: "
+                  f"hay ~{conf}% de probabilidad de que el valor real caiga dentro de la banda.")
+
     return {
         "model": model, "label": _LABELS[model], "n": int(y.size), "h": h,
+        "interpretacion": interp,
         "series": [float(v) for v in y],
         "fitted": [None if np.isnan(v) else float(v) for v in fitted],
         "forecast": [float(v) for v in forecast],
@@ -306,5 +337,14 @@ def compare(y, models=None, h=6, m=12, holdout=6, conf=95, params_map=None):
     ok = [r for r in rows if r["ok"] and r["metrics"]["RMSE"] == r["metrics"]["RMSE"]]
     ok.sort(key=lambda r: r["metrics"]["RMSE"])
     best = ok[0]["model"] if ok else None
+    interp = []
+    if best:
+        interp.append(f"El mejor modelo es «{_LABELS[best]}» por tener el menor RMSE "
+                      f"({ok[0]['metrics']['RMSE']:.3g}), evaluado en {'el conjunto de prueba' if holdout > 0 else 'el ajuste in-sample'}.")
+        interp.append("Compara también MAPE y MASE: un buen modelo suele tener MASE < 1 (supera al método ingenuo). "
+                      "El modelo más complejo no siempre es el mejor; prefiere el más simple con error similar.")
+    else:
+        interp.append("Ningún modelo pudo evaluarse; revisa que la serie tenga suficientes datos (Holt-Winters exige 2 ciclos completos).")
     return {"ranking": rows, "best": best, "criterion": "RMSE (menor es mejor)",
+            "interpretacion": interp,
             "evaluated_on": "prueba (holdout)" if holdout > 0 else "ajuste in-sample"}

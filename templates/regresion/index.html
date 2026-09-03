@@ -20,6 +20,16 @@
   <p class="small muted">Nota: el exponencial exige Y &gt; 0 y el logarítmico exige X &gt; 0.</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Símbolos y parámetros</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>X</b>: variable independiente (predictora) · <b>Y</b>: variable dependiente (respuesta) · <b>ŷ</b>: valor ajustado (predicho por el modelo)</p>
+    <p><b>a</b>: intercepto (valor de Y cuando el término en X es 0) · <b>b</b>: pendiente / tasa / coeficiente (cambio en Y) · <b>cᵢ</b>: coeficientes del polinomio</p>
+    <p><b>R²</b>: proporción de la variabilidad de Y explicada por el modelo (0 a 1) · <b>R² ajustado</b>: R² penalizado por el número de parámetros</p>
+    <p><b>RMSE</b>: raíz del error cuadrático medio (en unidades de Y) · <b>MAE</b>: error absoluto medio · <b>residuo</b> = y − ŷ (lo que el modelo no explica)</p>
+  </div>
+</details>
+
 <div class="card">
   <h2><span class="step">1</span> Variables y modelo</h2>
   <div id="needdata"></div>
@@ -49,6 +59,10 @@
 </div>
 
 <div id="results" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h2>🧭 Interpretación de resultados</h2>
+    <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
   <div class="card">
     <h2 id="res-title">Resultado del ajuste</h2>
     <div class="alert alert-ok" id="eqbox"></div>
@@ -72,6 +86,7 @@
     <thead><tr><th>Modelo</th><th>Ecuación</th><th>R²</th><th>R² ajust.</th><th>RMSE</th><th>MAE</th></tr></thead>
     <tbody></tbody></table></div>
   <p class="small muted" style="margin-top:.6rem">Ordenados por R² ajustado. La fila verde es el mejor modelo.</p>
+  <div id="cmp-interp" class="small" style="margin-top:.4rem;line-height:1.6"></div>
 </div>
 {% endblock %}
 
@@ -115,6 +130,7 @@ function stat(k,v,u=''){return `<div class="stat"><div class="k">${k}</div><div 
 
 function render(r,cx,cy){
   $('results').classList.remove('hidden');
+  document.getElementById('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
   $('res-title').textContent=`Ajuste ${r.model} · ${cy} en función de ${cx}`;
   $('eqbox').innerHTML=`<b>Ecuación ajustada:</b> <span class="mono">${r.equation}</span>`;
   const m=r.metrics;
@@ -165,6 +181,7 @@ $('btnCompare').addEventListener('click', async ()=>{
       }
       tb.appendChild(tr);
     });
+    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">🔹 ${t}</p>`).join('');
     $('compare').scrollIntoView({behavior:'smooth'});
   }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 });

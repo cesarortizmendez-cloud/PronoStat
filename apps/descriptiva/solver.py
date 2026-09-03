@@ -76,8 +76,53 @@ def describe(values, bins="auto"):
         "outliers": outliers,
     }
 
+    # ------------------- Interpretación automática de resultados -------------------
+    interp = []
+    if abs(mean - med) < 0.1 * (sd if sd else 1):
+        interp.append(f"La media ({mean:.3g}) y la mediana ({med:.3g}) son similares: "
+                      "la distribución es aproximadamente simétrica y la media resume bien el centro de los datos.")
+    elif mean > med:
+        interp.append(f"La media ({mean:.3g}) es mayor que la mediana ({med:.3g}): existen valores altos "
+                      "que arrastran el promedio hacia arriba (cola derecha); la mediana es más representativa.")
+    else:
+        interp.append(f"La media ({mean:.3g}) es menor que la mediana ({med:.3g}): existen valores bajos "
+                      "que arrastran el promedio hacia abajo (cola izquierda); la mediana es más representativa.")
+
+    if not math.isnan(cv):
+        disp = "baja" if abs(cv) < 15 else ("moderada" if abs(cv) < 30 else "alta")
+        interp.append(f"El coeficiente de variación es {cv:.1f}%, lo que indica una dispersión relativa "
+                      f"{disp} respecto a la media (regla orientativa: <15% baja, 15–30% moderada, >30% alta).")
+
+    if not math.isnan(skew):
+        if abs(skew) < 0.5:
+            a = "aproximadamente simétrica"
+        elif skew > 0:
+            a = "asimétrica hacia la derecha (cola de valores altos)"
+        else:
+            a = "asimétrica hacia la izquierda (cola de valores bajos)"
+        interp.append(f"La asimetría es {skew:.2f}: la distribución es {a}.")
+
+    if not math.isnan(kurt):
+        if kurt > 0.5:
+            k = "leptocúrtica (pico más alto y colas más pesadas que la normal; mayor riesgo de valores extremos)"
+        elif kurt < -0.5:
+            k = "platicúrtica (forma más plana y colas más ligeras que la normal)"
+        else:
+            k = "mesocúrtica (forma parecida a la de una distribución normal)"
+        interp.append(f"La curtosis (exceso) es {kurt:.2f}: la distribución es {k}.")
+
+    if outliers:
+        interp.append(f"Se detectaron {len(outliers)} valor(es) atípico(s) fuera del rango "
+                      f"[{lo:.3g}, {hi:.3g}] (regla 1.5·IQR): {', '.join(f'{o:.3g}' for o in outliers)}. "
+                      "Conviene revisar si son errores de registro o casos legítimos.")
+    else:
+        interp.append("No se detectaron valores atípicos según la regla 1.5·IQR.")
+
+    interp.append(f"Con 95% de confianza, la media poblacional se ubica entre {ci[0]:.3g} y {ci[1]:.3g}.")
+
     return {
         "n": n,
+        "interpretacion": interp,
         "summary": {
             "media": mean, "mediana": med, "moda": modes,
             "desv_std": sd, "varianza": var, "coef_var_pct": cv,

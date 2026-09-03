@@ -49,9 +49,10 @@
     </div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-ghost" id="btnDemo">Usar dataset de ejemplo (ventas mensuales)</button>
+    <button class="btn btn-ghost" id="btnGaleria">📚 Explorar ejemplos (bases de datos de Chile)</button>
   </div>
   <div id="load-msg"></div>
+  <div id="galeria" class="hidden" style="margin-top:1rem"></div>
 </div>
 
 <!-- PASO 2: tipos y perfil -->
@@ -116,6 +117,8 @@
 <script>
 let RAW = { columns: [], rows: [] };   // dataset crudo (hoja seleccionada)
 let PROFILE = null;                     // perfil devuelto por el servidor
+let EXAMPLE_NAME = '';                  // nombre del ejemplo cargado (si aplica)
+let CATALOG = [];                       // catálogo de ejemplos
 
 const $ = id => document.getElementById(id);
 function msg(el, html, cls='alert-info'){ $(el).innerHTML = html ? `<div class="alert ${cls}">${html}</div>` : ''; }
@@ -124,6 +127,7 @@ function msg(el, html, cls='alert-info'){ $(el).innerHTML = html ? `<div class="
 let WB = null;
 $('file').addEventListener('change', async (e) => {
   const f = e.target.files[0]; if (!f) return;
+  EXAMPLE_NAME = '';
   msg('load-msg', 'Leyendo archivo… <span class="spinner"></span>');
   try {
     const buf = await f.arrayBuffer();
@@ -154,17 +158,44 @@ function loadSheet(){
   analyze();
 }
 
-$('btnDemo').addEventListener('click', () => {
-  // 24 meses de ventas con tendencia + estacionalidad + algo de ruido
-  const base=[112,118,132,129,121,135,148,148,136,119,104,118,
-              115,126,141,135,125,149,170,170,158,133,114,140,
-              145,150,178,163,172,178,199,199,184,162,146,166];
-  RAW.columns = ['mes','ventas','gasto_pub'];
-  RAW.rows = base.map((v,i)=>({ mes:i+1, ventas:v, gasto_pub: Math.round(v*0.35 + (i%12)*2 + 20) }));
-  WB=null; $('sheet-field').style.display='none';
-  msg('load-msg','Dataset de ejemplo cargado (36 meses de ventas, gasto publicitario).','alert-ok');
-  analyze();
+/* ---------- Galería de ejemplos ---------- */
+$('btnGaleria').addEventListener('click', async () => {
+  const g=$('galeria');
+  if(CATALOG.length){ g.classList.toggle('hidden'); if(!g.classList.contains('hidden')) g.scrollIntoView({behavior:'smooth'}); return; }
+  msg('load-msg','Cargando catálogo de ejemplos… <span class="spinner"></span>');
+  try{
+    const res=await fetch('/datos/api/examples'); const data=await res.json();
+    CATALOG=data.datasets||[]; msg('load-msg','');
+    renderGaleria(); g.classList.remove('hidden'); g.scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg('load-msg','No se pudo cargar el catálogo: '+err.message,'alert-err'); }
 });
+
+function renderGaleria(){
+  $('galeria').innerHTML='<div class="modules">'+CATALOG.map(d=>`
+    <div class="mod-card" style="cursor:default;display:flex;flex-direction:column">
+      <span class="pill pill-b">${d.sector}</span>
+      <h3 style="margin:.5rem 0 .3rem">${d.nombre}</h3>
+      <p style="flex:1">${d.descripcion}</p>
+      <div style="margin:.5rem 0">${d.caracteristicas.map(c=>`<span class="pill pill-a" style="margin:.12rem .12rem 0 0">${c}</span>`).join('')}</div>
+      <p class="small muted">${d.n} filas · ${d.periodo}${d.m?` · m=${d.m}`:''}</p>
+      <button class="btn cargar" data-id="${d.id}" style="width:100%;margin-top:.4rem">Cargar este ejemplo</button>
+    </div>`).join('')+'</div>';
+  document.querySelectorAll('.cargar').forEach(b=>b.addEventListener('click',()=>cargarEjemplo(b.dataset.id)));
+}
+
+async function cargarEjemplo(id){
+  msg('load-msg','Cargando ejemplo… <span class="spinner"></span>');
+  try{
+    const res=await fetch('/datos/api/example?id='+encodeURIComponent(id));
+    const d=await res.json();
+    if(d.error) throw new Error(d.error);
+    WB=null; $('sheet-field').style.display='none';
+    RAW.columns=d.columns.map(c=>c.name); RAW.rows=d.rows; EXAMPLE_NAME=d.nombre;
+    msg('load-msg',`Ejemplo <b>${d.nombre}</b> cargado (${d.rows.length} filas). Revisa los tipos y aplica la limpieza abajo.`,'alert-ok');
+    analyze();
+    setTimeout(()=>$('card-profile').scrollIntoView({behavior:'smooth'}),150);
+  }catch(err){ msg('load-msg','No se pudo cargar el ejemplo: '+err.message,'alert-err'); }
+}
 
 /* ---------- Perfilado (servidor) ---------- */
 async function analyze(){
@@ -212,7 +243,7 @@ $('btnClean').addEventListener('click', async () => {
   msg('clean-msg','Limpiando… <span class="spinner"></span>');
   try{
     const res = await PSU.postJSON('/datos/api/clean', { columns: RAW.columns, rows: RAW.rows, options });
-    const d = { source: (WB? $('file').files[0]?.name : 'ejemplo') || 'dataset',
+    const d = { source: (WB? $('file').files[0]?.name : (EXAMPLE_NAME || 'ejemplo')) || 'dataset',
                 sheet: WB? $('sheet').value : null, columns: res.columns, rows: res.rows, meta: res.report };
     PronoStat.save(d);
     const r=res.report;

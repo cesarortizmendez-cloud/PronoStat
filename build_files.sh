@@ -1,4 +1,4 @@
 #!/bin/bash
-# Script de build para Vercel: instala dependencias y recolecta estáticos.
-pip install -r requirements.txt
-python manage.py collectstatic --noinput --clear
+# Build estático para Vercel: recolecta los estáticos de Django en staticfiles_build/static
+pip install Django whitenoise python-decouple
+python3 manage.py collectstatic --noinput --clear

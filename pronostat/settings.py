@@ -74,7 +74,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'staticfiles_build' / 'static'  # coincide con distDir de vercel.json
 STATICFILES_DIRS = [BASE_DIR / 'static']
 # CompressedStaticFilesStorage (sin manifest) evita tener que correr collectstatic
 # para el desarrollo local con runserver, y sigue sirviendo comprimido en Vercel.

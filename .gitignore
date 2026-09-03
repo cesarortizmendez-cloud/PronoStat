@@ -7,6 +7,7 @@ venv/
 env/
 .venv/
 staticfiles/
+staticfiles_build/
 .vercel/
 .DS_Store
 *.log

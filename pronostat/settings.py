@@ -6,6 +6,7 @@ Dr. César Ortiz Méndez · Ingeniería Industrial · USACH
 Misma arquitectura que IO-Lab Pro: cada módulo es una app independiente,
 cálculo stateless (JSON entra / JSON sale), sin modelos custom, estáticos con WhiteNoise.
 """
+import os
 from pathlib import Path
 from decouple import config
 
@@ -13,10 +14,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-pronostat-dev-key-cambiar-en-produccion')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
+
+# Hosts permitidos. Se combina lo que definas en ALLOWED_HOSTS con el dominio que
+# Vercel asigna automaticamente en cada despliegue (evita el error 400 "Bad Request").
+ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',') if h.strip()]
+ALLOWED_HOSTS.append('.vercel.app')  # cubre <proyecto>.vercel.app y sus previews
+for _var in ('VERCEL_URL', 'VERCEL_BRANCH_URL', 'VERCEL_PROJECT_PRODUCTION_URL'):
+    _host = os.environ.get(_var)
+    if _host:
+        ALLOWED_HOSTS.append(_host.replace('https://', '').replace('http://', ''))
+
 CSRF_TRUSTED_ORIGINS = [
     o for o in config('CSRF_TRUSTED_ORIGINS', default='https://*.vercel.app').split(',') if o
 ]
+for _var in ('VERCEL_URL', 'VERCEL_BRANCH_URL', 'VERCEL_PROJECT_PRODUCTION_URL'):
+    _host = os.environ.get(_var)
+    if _host:
+        CSRF_TRUSTED_ORIGINS.append('https://' + _host.replace('https://', '').replace('http://', ''))
 
 INSTALLED_APPS = [
     'django.contrib.contenttypes',

@@ -19,6 +19,16 @@
      Para pronosticar necesitas los <b>valores futuros de las exógenas</b> (o se mantienen en su último valor).</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Como ARIMA, pero incorpora <i>variables externas</i> (exógenas) que influyen en la serie: precio, clima, publicidad, etc.</p>
+  <p><b>¿Cómo se usa?</b> Elige la serie Y, marca las variables externas, define los órdenes SARIMA, el horizonte y un holdout, y pulsa «Estimar SARIMAX».</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> Cada β de una exógena mide su efecto sobre Y controlando la dinámica temporal; revisa su p-valor. La prueba Ljung-Box valida los residuos. Para pronosticar necesitas los valores futuros de las exógenas (si no los das, se mantienen en su último valor observado).</p>
+  <p><b>Símbolos:</b> β coeficiente de una exógena · exógena = variable externa · p,d,q y P,D,Q,m órdenes SARIMA.</p>
+  </div>
+</details>
+
 <div class="card">
   <h2><span class="step">1</span> Especificación</h2>
   <div id="needdata"></div>

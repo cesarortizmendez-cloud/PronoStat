@@ -11,6 +11,15 @@
   <p>A partir de un modelo base se obtiene el pronóstico puntual y la desviación de sus errores (σ). Se simulan
      N trayectorias sumando <b>shocks</b> aleatorios (normales o por remuestreo de residuos) que se acumulan con el
      horizonte. El <b>abanico</b> de percentiles resume la distribución de resultados.</p></div>
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Genera miles de futuros posibles (simulación de Monte Carlo) para ver el rango de resultados y calcular probabilidades.</p>
+  <p><b>¿Cómo se usa?</b> Elige la serie, el modelo base, el horizonte, el número de simulaciones, el tipo de shock y, opcionalmente, un umbral; pulsa «Simular».</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> El abanico muestra los percentiles (P5–P95): el rango de resultados plausibles, que se ensancha con el horizonte porque la incertidumbre se acumula. Los escenarios pesimista/esperado/optimista resumen ese rango. La probabilidad de superar el umbral apoya decisiones de riesgo.</p>
+  </div>
+</details>
+
 <div class="card">
   <div id="needdata"></div>
   <div class="grid grid-3" id="controls">

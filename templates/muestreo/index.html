@@ -21,12 +21,12 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📖 Técnicas y símbolos</summary>
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
-    <p><b>Probabilísticas:</b> <i>Aleatorio simple (MAS)</i> — cada unidad igual probabilidad · <i>Sistemático</i> — cada k-ésima unidad (k = N/n) tras un arranque aleatorio · <i>Estratificado</i> — se divide en estratos homogéneos y se muestrea en cada uno · <i>Por conglomerados</i> — se eligen grupos completos.</p>
-    <p><b>No probabilísticas</b> (sin marco de probabilidad): por conveniencia, por cuotas, por juicio, bola de nieve. Útiles pero no permiten medir el error de muestreo.</p>
-    <p><b>N</b>: población · <b>n</b>: muestra · <b>N_h, n_h</b>: tamaño del estrato h · <b>W_h</b>=N_h/N: peso · <b>S_h</b>: desviación del estrato · <b>E</b>: error máximo · <b>f</b>=n/N: fracción de muestreo</p>
-    <p><b>Asignación proporcional:</b> n_h = n·(N_h/N) · <b>Asignación de Neyman (óptima):</b> n_h = n·(N_h·S_h)/Σ(N_h·S_h)</p>
+  <p><b>¿Qué hace este módulo?</b> Enseña a tomar una muestra representativa de una población, a calcular cuántos datos necesitas y a estimar a partir de la muestra.</p>
+  <p><b>¿Cómo se usa?</b> Tiene cuatro pestañas: «Extraer muestra» toma una muestra del dataset (aleatoria simple, sistemática o estratificada); «Tamaño de muestra» calcula el n necesario para estimar una media o una proporción; «Asignación estratificada» reparte una muestra entre estratos; «Estimación» calcula la media/total desde una muestra.</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> Al extraer, la app compara la media de la muestra con la de la población: esa diferencia es el <i>error de muestreo</i> (disminuye al aumentar n). El tamaño n indica cuántas unidades observar para un error máximo dado. La asignación de Neyman da más muestra a los estratos grandes y más variables.</p>
+  <p><b>Símbolos:</b> N población · n muestra · N_h, n_h tamaño del estrato · W_h peso · S_h desviación del estrato · E error máximo · f = n/N fracción de muestreo · fpc corrección por población finita.</p>
   </div>
 </details>
 

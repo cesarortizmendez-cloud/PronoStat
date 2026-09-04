@@ -24,12 +24,12 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📖 Tipos de datos y opciones de limpieza</summary>
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
-    <p><b>Numérico</b>: cantidades sobre las que se calcula (media, regresión, pronóstico). Se detecta si ≥85% de los valores son números; admite coma decimal y separador de miles.</p>
-    <p><b>Fecha</b>: marcas temporales (formatos aaaa-mm-dd, dd/mm/aaaa, etc.) · <b>Booleano</b>: sí/no, verdadero/falso · <b>Texto</b>: categorías o etiquetas.</p>
-    <p><b>Faltantes</b>: celdas vacías o nulas · <b>Únicos</b>: nº de valores distintos · <b>Duplicadas</b>: filas idénticas en todas sus columnas.</p>
-    <p><b>Política de nulos</b>: conservar, eliminar filas con algún nulo, o eliminar solo filas totalmente vacías · <b>Coerción</b>: convertir texto numérico a número real · <b>Trim</b>: quitar espacios sobrantes.</p>
+  <p><b>¿Qué hace este módulo?</b> Es el punto de partida: importa tus datos y los deja limpios y ordenados para que el resto de módulos trabajen con ellos.</p>
+  <p><b>¿Cómo se usa?</b> 1) Sube un Excel/CSV o pulsa «Explorar ejemplos» para usar una base de Chile. 2) Elige la hoja e indica si la primera fila son los nombres de columna. 3) Revisa los tipos detectados (numérico, fecha, texto, booleano) y corrígelos, marcando las columnas a conservar. 4) Aplica la limpieza (qué hacer con nulos, quitar duplicados) y guarda el dataset.</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> El perfil muestra, por columna, el tipo, el porcentaje de datos faltantes y los valores únicos; arriba ves el total de filas y duplicados. Tras limpiar, el resumen indica cuántas filas quedaron. El dataset guardado aparece en la barra lateral y queda disponible para los demás módulos.</p>
+  <p><b>Tipos y opciones:</b> Numérico (cálculos), Fecha, Booleano (sí/no), Texto (categorías). Política de nulos: conservar, eliminar filas con algún nulo, o solo filas totalmente vacías. Coerción convierte texto numérico a número; Trim quita espacios.</p>
   </div>
 </details>
 

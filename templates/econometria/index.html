@@ -20,11 +20,12 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📖 Símbolos, formas funcionales y diagnósticos</summary>
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
-    <p><b>Dummy</b>: variable categórica convertida en columnas 0/1 (se omite una categoría base) · <b>Interacción</b> X₁·X₂: el efecto de X₁ depende de X₂ · <b>β estand.</b>: coeficiente en desviaciones estándar (comparar importancia).</p>
-    <p><b>Formas:</b> Nivel-Nivel · Log-Log (elasticidad) · Log-Nivel (semielasticidad, %) · Nivel-Log · <b>EE robustos</b>: válidos bajo heterocedasticidad.</p>
-    <p><b>Multicolinealidad:</b> VIF (>10 grave), número de condición (>30). <b>Heterocedasticidad:</b> Breusch-Pagan, White. <b>Autocorrelación:</b> Durbin-Watson, Breusch-Godfrey. <b>Normalidad:</b> Jarque-Bera. <b>Forma funcional:</b> Ramsey RESET. <b>Influencia:</b> apalancamiento (hat) y distancia de Cook (umbral 4/n).</p>
+  <p><b>¿Qué hace este módulo?</b> Ajusta un modelo que explica una variable a partir de varias (regresión lineal múltiple) y revisa si cumple los supuestos estadísticos.</p>
+  <p><b>¿Cómo se usa?</b> Elige la variable dependiente Y, marca las explicativas numéricas y/o categóricas (se convierten en dummies), añade interacciones si quieres, elige la forma funcional y si usar errores robustos, y pulsa «Estimar por MCO».</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> Cada coeficiente es el efecto de esa variable manteniendo las demás fijas (ceteris paribus); mira su p-valor (significativo si &lt; 0,05). El R² y la prueba F miden el ajuste global. Los diagnósticos (VIF, Breusch-Pagan, Durbin-Watson, Jarque-Bera, RESET) avisan con ⚠ cuando se viola un supuesto. La distancia de Cook marca observaciones influyentes.</p>
+  <p><b>Símbolos:</b> βⱼ coeficiente · EE error estándar · dummy variable 0/1 · VIF multicolinealidad (&gt;10 grave) · elasticidad (log-log).</p>
   </div>
 </details>
 

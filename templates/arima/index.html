@@ -21,6 +21,16 @@
      software especializado; ideal para aprender la mecánica del método.</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Modela una serie de tiempo con la metodología Box-Jenkins (ARIMA y SARIMA) para pronosticar con base estadística.</p>
+  <p><b>¿Cómo se usa?</b> Tres pestañas: «Estimar» ajusta un ARIMA(p,d,q)(P,D,Q) que tú especificas; «Selección automática» busca el mejor modelo por AICc; «Validación» evalúa con origen móvil. Identifica los órdenes con el módulo 8 (ACF/PACF y estacionariedad).</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> Los coeficientes con p &lt; 0,05 son relevantes. Menor AIC/BIC = mejor modelo. El diagnóstico clave es Ljung-Box: si p ≥ 0,05, los residuos son ruido blanco (el modelo capturó la estructura). El pronóstico trae intervalos que crecen con el horizonte.</p>
+  <p><b>Símbolos:</b> p, d, q órdenes AR, diferenciación y MA · P, D, Q, m componentes estacionales · AIC/BIC criterios de información · Ljung-Box prueba de residuos.</p>
+  </div>
+</details>
+
 <div class="card">
   <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
     <button class="btn btn-ghost mtab active" data-m="est">Estimar</button>

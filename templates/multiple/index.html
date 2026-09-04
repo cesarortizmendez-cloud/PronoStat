@@ -9,6 +9,15 @@
 <div class="theory"><h3>📚 Pronóstico por lotes</h3>
   <p>En la práctica rara vez se pronostica una sola serie: se automatiza el proceso para cientos de ítems. Este módulo
      ejecuta el modelo elegido sobre cada columna seleccionada y reporta el pronóstico y su exactitud (MAPE/MASE).</p></div>
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Aplica el mismo modelo de pronóstico a muchas series a la vez (pronóstico por lotes), útil para carteras de productos, sucursales o SKUs.</p>
+  <p><b>¿Cómo se usa?</b> Elige el modelo, el horizonte y marca las series (columnas) a pronosticar; pulsa «Pronosticar todas».</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> La tabla muestra el pronóstico de cada serie y su exactitud (MAPE/MASE). Revisa las series con mayor error: pueden requerir otro modelo o más datos.</p>
+  </div>
+</details>
+
 <div class="card">
   <div id="needdata"></div>
   <div class="grid grid-3" id="controls">

@@ -10,6 +10,16 @@
   <p>Bates & Granger (1969) mostraron que promediar pronósticos de modelos <b>diversos</b> suele reducir el error y
      la varianza. Aquí se combinan por <b>media</b>, <b>mediana</b> y <b>ponderación por el inverso del RMSE</b>
      (más peso a los modelos más precisos en el conjunto de prueba).</p></div>
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Combina los pronósticos de varios modelos en uno solo, normalmente más robusto y preciso que cualquiera por separado.</p>
+  <p><b>¿Cómo se usa?</b> Elige la serie, marca los modelos base a combinar, fija el horizonte y el holdout, y pulsa «Ensamblar».</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> El ranking ordena por RMSE (menor es mejor). Los pesos dan más importancia a los modelos más precisos en la prueba. Si un ensamble encabeza el ranking, la combinación redujo el error frente al mejor individual.</p>
+  <p><b>Símbolos:</b> media/mediana (combinación simple) · ponderado (peso ∝ 1/RMSE) · RMSE error de prueba.</p>
+  </div>
+</details>
+
 <div class="card">
   <div id="needdata"></div>
   <div class="grid grid-3" id="controls">

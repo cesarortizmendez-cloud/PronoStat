@@ -239,3 +239,155 @@ def explore(values, groups=None, bins="auto"):
         result["grouped"] = {"groups": groups_out, "anova": anova, "interpretacion": ginterp}
 
     return result
+
+
+# =========================================================================== #
+#  Tablas de distribución de frecuencias
+# =========================================================================== #
+def _fmt(v):
+    v = float(v)
+    return int(v) if v == int(v) else round(v, 4)
+
+
+def _sturges(n):
+    return max(1, int(math.ceil(1 + 3.322 * math.log10(n)))) if n > 1 else 1
+
+
+def tabla_frecuencias(values, bins="auto", tipo="auto"):
+    """Tabla de frecuencias monovariada (categórica, discreta o por intervalos)."""
+    no_vac = [v for v in values if v not in (None, "")]
+    num_ok = 0
+    for v in no_vac:
+        try:
+            float(v); num_ok += 1
+        except (TypeError, ValueError):
+            pass
+    # variable categórica (texto)
+    if no_vac and num_ok < 0.8 * len(no_vac):
+        s = [str(v) for v in no_vac]
+        n = len(s)
+        vals, counts = np.unique(s, return_counts=True)
+        clases = list(vals); marcas = [None] * len(vals); fi = counts.astype(float)
+        li = ls = None
+        tipo = "categórica"
+        return _build_freq(tipo, n, clases, marcas, fi, li, ls, bins)
+
+    x = _clean(values)
+    n = int(x.size)
+    if n < 1:
+        raise ValueError("No hay datos numéricos válidos.")
+    distintos = np.unique(x)
+    if tipo == "auto":
+        tipo = "discreta" if len(distintos) <= 12 else "continua"
+
+    if tipo == "discreta":
+        vals, counts = np.unique(x, return_counts=True)
+        clases = [str(_fmt(v)) for v in vals]
+        marcas = [float(v) for v in vals]
+        fi = counts.astype(float)
+        li = ls = None
+    else:
+        k = _sturges(n) if bins == "auto" else int(bins)
+        counts, edges = np.histogram(x, bins=k)
+        fi = counts.astype(float)
+        li = [float(edges[i]) for i in range(len(edges) - 1)]
+        ls = [float(edges[i + 1]) for i in range(len(edges) - 1)]
+        marcas = [float((edges[i] + edges[i + 1]) / 2) for i in range(len(edges) - 1)]
+        clases = [f"[{edges[i]:.2f} – {edges[i+1]:.2f}" + (")" if i < len(edges) - 2 else "]") for i in range(len(edges) - 1)]
+    return _build_freq(tipo, n, clases, marcas, fi, li, ls, bins)
+
+
+def _build_freq(tipo, n, clases, marcas, fi, li, ls, bins):
+    fi = np.asarray(fi, dtype=float)
+    Fi_asc = np.cumsum(fi)
+    Fi_desc = np.cumsum(fi[::-1])[::-1]          # frec. acumulada descendente
+    hi = fi / n
+    Hi_asc = np.cumsum(hi)
+    pi = hi * 100
+    Pi_asc = np.cumsum(pi)
+
+    filas = []
+    for i in range(len(fi)):
+        row = {"clase": clases[i], "marca": marcas[i],
+               "fi": int(fi[i]), "Fi_asc": int(Fi_asc[i]), "Fi_desc": int(Fi_desc[i]),
+               "hi": float(hi[i]), "Hi_asc": float(Hi_asc[i]),
+               "pi": float(pi[i]), "Pi_asc": float(Pi_asc[i])}
+        if li is not None:
+            row["li"] = li[i]; row["ls"] = ls[i]
+        filas.append(row)
+
+    idx_modal = int(np.argmax(fi))
+    interp = [
+        f"Tabla de frecuencias {'por intervalos (continua)' if tipo=='continua' else 'de valores (discreta)'} "
+        f"con {len(fi)} clases y n = {n} datos" + (f" (regla de Sturges: k = {len(fi)})." if tipo == 'continua' and bins == 'auto' else "."),
+        f"Clase modal (mayor frecuencia): «{clases[idx_modal]}» con fᵢ = {int(fi[idx_modal])} "
+        f"({pi[idx_modal]:.1f}% de los datos).",
+        "fᵢ = frecuencia absoluta · Fᵢ↑ = acumulada ascendente · Fᵢ↓ = acumulada descendente · "
+        "hᵢ = relativa (fᵢ/n) · pᵢ = porcentual (%). Verificación: Σfᵢ = n, Σhᵢ = 1, Σpᵢ = 100%.",
+    ]
+    return {"tipo": tipo, "n": n, "k": len(fi), "filas": filas,
+            "totales": {"fi": n, "hi": 1.0, "pi": 100.0}, "interpretacion": interp}
+
+
+def _categorizar(values, bins):
+    """Devuelve (etiqueta_por_obs, categorias_ordenadas) para una variable."""
+    nums, allnum = [], True
+    for v in values:
+        try:
+            nums.append(float(v))
+        except (TypeError, ValueError):
+            allnum = False
+            break
+    if allnum and not any(isinstance(v, str) and not v.replace('.', '', 1).replace('-', '', 1).isdigit() for v in values if v not in (None, "")):
+        arr = np.array(nums, dtype=float)
+        uniq = np.unique(arr)
+        if len(uniq) <= 10:
+            cats = [str(_fmt(u)) for u in uniq]
+            labels = [str(_fmt(v)) for v in arr]
+            return labels, cats
+        k = _sturges(len(arr)) if bins in (None, "auto") else int(bins)
+        counts, edges = np.histogram(arr, bins=k)
+        cats = [f"[{edges[i]:.1f}–{edges[i+1]:.1f})" for i in range(len(edges) - 1)]
+        idx = np.clip(np.digitize(arr, edges[1:-1]), 0, len(cats) - 1)
+        labels = [cats[i] for i in idx]
+        return labels, cats
+    s = ["∅" if v in (None, "") else str(v) for v in values]
+    cats = sorted(set(s))
+    return s, cats
+
+
+def tabla_doble(xvalues, yvalues, xname="X", yname="Y", xbins="auto", ybins="auto"):
+    """Tabla de doble entrada (contingencia) para dos variables."""
+    if len(xvalues) != len(yvalues):
+        raise ValueError("Las dos variables deben tener el mismo número de observaciones.")
+    # emparejar y descartar faltantes
+    xv, yv = [], []
+    for a, b in zip(xvalues, yvalues):
+        if a in (None, "") or b in (None, ""):
+            continue
+        xv.append(a); yv.append(b)
+    if len(xv) < 2:
+        raise ValueError("No hay suficientes pares válidos.")
+    xl, xcats = _categorizar(xv, xbins)
+    yl, ycats = _categorizar(yv, ybins)
+    n = len(xl)
+    xi = {c: i for i, c in enumerate(xcats)}
+    yi = {c: i for i, c in enumerate(ycats)}
+    M = np.zeros((len(xcats), len(ycats)), dtype=int)
+    for a, b in zip(xl, yl):
+        M[xi[a], yi[b]] += 1
+    row_tot = M.sum(axis=1); col_tot = M.sum(axis=0); total = int(M.sum())
+
+    interp = [
+        f"Tabla de doble entrada de «{xname}» (filas: {len(xcats)}) × «{yname}» (columnas: {len(ycats)}), n = {total}.",
+        "Cada celda cuenta cuántas observaciones combinan esa fila y esa columna; los márgenes (totales) son las "
+        "distribuciones de cada variable por separado.",
+    ]
+    # celda más frecuente
+    fi, fj = np.unravel_index(int(np.argmax(M)), M.shape)
+    interp.append(f"Combinación más frecuente: «{xcats[fi]}» × «{ycats[fj]}» con {int(M[fi,fj])} casos "
+                  f"({M[fi,fj]/total*100:.1f}%).")
+    return {"xname": xname, "yname": yname, "xcats": xcats, "ycats": ycats,
+            "matriz": [[int(v) for v in row] for row in M],
+            "total_filas": [int(v) for v in row_tot], "total_cols": [int(v) for v in col_tot],
+            "total": total, "interpretacion": interp}

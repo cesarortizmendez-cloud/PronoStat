@@ -22,6 +22,16 @@
      no estacionaria) y <b>KPSS</b> (H₀: estacionaria) se complementan. Si no es estacionaria, se <b>diferencia</b>.</p>
 </div>
 
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+  <p><b>¿Qué hace este módulo?</b> Analiza una serie de tiempo <i>antes</i> de modelarla: la descompone, mide su autocorrelación y prueba si es estacionaria.</p>
+  <p><b>¿Cómo se usa?</b> Tres pestañas: «Descomposición» separa tendencia, estacionalidad y residuo; «ACF/PACF» muestra las autocorrelaciones; «Estacionariedad» corre las pruebas ADF y KPSS y permite diferenciar (d regular, D estacional).</p>
+  <p><b>¿Cómo se interpretan los resultados?</b> En la descomposición, F_T y F_S cercanas a 1 indican tendencia/estacionalidad fuertes. En ACF/PACF, las barras que salen de las líneas punteadas son significativas. ADF: si rechaza → serie estacionaria; KPSS: si rechaza → NO estacionaria. Si no es estacionaria, diferencia y vuelve a probar.</p>
+  <p><b>Símbolos:</b> T tendencia · S estacionalidad · R residuo · m período · ACF autocorrelación · PACF autocorrelación parcial · d, D órdenes de diferenciación.</p>
+  </div>
+</details>
+
 <div class="card">
   <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
     <button class="btn btn-ghost mtab active" data-m="desc">Descomposición</button>

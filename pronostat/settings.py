@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.pronostico',
     'apps.inferencia',
     'apps.econometria',
+    'apps.series',
     'apps.exportar',
 ]
 

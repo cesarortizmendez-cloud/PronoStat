@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}8 · Series de tiempo{% endblock %}
+{% block topbar %}8 · Series de tiempo — Descomposición, ACF/PACF y estacionariedad{% endblock %}
+{% block nav_series %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Series de tiempo</div>
+  <h1>📉 Series de tiempo <span class="pill pill-a">Versión 2</span></h1>
+  <p>Análisis avanzado de series: <b>descomposición</b> en tendencia/estacionalidad/residuo,
+     funciones de autocorrelación <b>ACF y PACF</b>, y pruebas de <b>estacionariedad (ADF y KPSS)</b>
+     con herramienta de diferenciación.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Fundamentos</h3>
+  <p><b>Descomposición:</b> Yₜ = Tₜ + Sₜ + Rₜ (aditiva) o Yₜ = Tₜ·Sₜ·Rₜ (multiplicativa) — separa la
+     tendencia (T), la estacionalidad (S) y el residuo (R).</p>
+  <p><b>ACF</b> mide la correlación de la serie con sus rezagos; <b>PACF</b> la correlación "limpia" del efecto
+     de rezagos intermedios. Guían la identificación de modelos AR/MA (Box-Jenkins).</p>
+  <p><b>Estacionariedad:</b> muchos modelos exigen media y varianza constantes. <b>ADF</b> (H₀: raíz unitaria =
+     no estacionaria) y <b>KPSS</b> (H₀: estacionaria) se complementan. Si no es estacionaria, se <b>diferencia</b>.</p>
+</div>
+
+<div class="card">
+  <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
+    <button class="btn btn-ghost mtab active" data-m="desc">Descomposición</button>
+    <button class="btn btn-ghost mtab" data-m="acf">ACF / PACF</button>
+    <button class="btn btn-ghost mtab" data-m="estac">Estacionariedad</button>
+  </div>
+  <div id="needdata"></div>
+
+  <div class="mode" id="m-desc">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="d-col"></select></div>
+      <div class="field"><label>Período estacional m</label><input type="number" id="d-m" value="12" min="2"></div>
+      <div class="field"><label>Modelo</label><select id="d-modelo"><option value="add">Aditivo</option><option value="mul">Multiplicativo</option></select></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="d-run">Descomponer</button></div>
+    </div>
+  </div>
+  <div class="mode" id="m-acf" style="display:none">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="a-col"></select></div>
+      <div class="field"><label>Rezagos máximos</label><input type="number" id="a-lags" value="24" min="1" max="60"></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="a-run">Calcular ACF/PACF</button></div>
+    </div>
+  </div>
+  <div class="mode" id="m-estac" style="display:none">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="e-col"></select></div>
+      <div class="field"><label>Regresión</label><select id="e-reg"><option value="c">Con constante</option><option value="ct">Constante + tendencia</option></select></div>
+      <div class="field"><label>Período m</label><input type="number" id="e-m" value="12" min="2"></div>
+      <div class="field"><label>Diferenciación regular d</label><input type="number" id="e-d" value="0" min="0" max="3"></div>
+      <div class="field"><label>Diferenciación estacional D</label><input type="number" id="e-D" value="0" min="0" max="2"></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="e-run">Probar estacionariedad</button></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<div id="result" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h2>🧭 Interpretación</h2>
+    <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
+  <div class="card" id="viz-card"><h2 id="viz-title">Resultado</h2><div id="viz"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+function msg(h,c='alert-info'){ $('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:''; }
+function interp(l){ $('interp').innerHTML=(l||[]).map(t=>`<li>${t}</li>`).join(''); }
+let CHARTS=[];
+function clearCharts(){ CHARTS.forEach(c=>c.destroy()); CHARTS=[]; }
+
+document.querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  document.querySelectorAll('.mode').forEach(m=>m.style.display='none'); $('m-'+b.dataset.m).style.display=''; $('result').classList.add('hidden'); msg('');
+}));
+
+function fill(){ if(PronoStat.has()){ const nums=PronoStat.numericColumns(); ['d-col','a-col','e-col'].forEach(id=>PSU.fillColumnSelect($(id),nums)); } }
+if(!PSU.requireDataset('needdata')){ document.querySelectorAll('.mode').forEach(m=>m.style.display='none'); } else fill();
+
+const line=(ctx,labels,data,color,title)=>new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:color,borderWidth:1.8,pointRadius:0,tension:.15}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:!!title,text:title,align:'start'}},scales:{x:{ticks:{maxTicksLimit:8}},y:{title:{display:false}}}}});
+
+/* ---------- Descomposición ---------- */
+$('d-run').addEventListener('click', async ()=>{
+  const y=PronoStat.numericValues($('d-col').value);
+  msg('Descomponiendo… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/series/api/descomponer',{y,m:parseInt($('d-m').value)||12,modelo:$('d-modelo').value});
+    msg(''); $('result').classList.remove('hidden'); interp(r.interpretacion);
+    $('viz-title').textContent=`Descomposición ${r.modelo==='add'?'aditiva':'multiplicativa'} (m=${r.m})`;
+    $('viz').innerHTML=`<div class="stat-grid" style="margin-bottom:1rem"><div class="stat"><div class="k">Fuerza tendencia</div><div class="v">${PSU.fmt(r.fuerza_tendencia)}</div></div><div class="stat"><div class="k">Fuerza estacional</div><div class="v">${PSU.fmt(r.fuerza_estacional)}</div></div></div>`+
+      ['observado','tendencia','estacional','residuo'].map(k=>`<div class="section-title">${k[0].toUpperCase()+k.slice(1)}</div><div class="chart-box" style="height:150px"><canvas id="dc-${k}"></canvas></div>`).join('');
+    clearCharts();
+    const cols={observado:'#0f766e',tendencia:'#6d28d9',estacional:'#b45309',residuo:'#64748b'};
+    ['observado','tendencia','estacional','residuo'].forEach(k=>CHARTS.push(line($('dc-'+k),r.t,r[k],cols[k])));
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- ACF / PACF ---------- */
+function acfChart(ctx,vals,banda,title){
+  const labels=vals.map((_,i)=>i);
+  return new Chart(ctx,{data:{labels,datasets:[
+    {type:'bar',data:vals,backgroundColor:vals.map((v,i)=>i===0?'#94a3b8':(Math.abs(v)>banda?'#0f766e':'#a7f3d0')),barPercentage:.4},
+    {type:'line',data:labels.map(()=>banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0},
+    {type:'line',data:labels.map(()=>-banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title,align:'start'}},scales:{x:{title:{display:true,text:'rezago'}},y:{suggestedMin:-1,suggestedMax:1}}}});
+}
+$('a-run').addEventListener('click', async ()=>{
+  const y=PronoStat.numericValues($('a-col').value);
+  msg('Calculando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/series/api/acf',{y,nlags:parseInt($('a-lags').value)||24});
+    msg(''); $('result').classList.remove('hidden'); interp(r.interpretacion);
+    $('viz-title').textContent=`ACF y PACF (n=${r.n}, banda ±${PSU.fmt(r.banda)})`;
+    $('viz').innerHTML='<div class="chart-box" style="height:260px"><canvas id="acfc"></canvas></div><div class="chart-box" style="height:260px;margin-top:1rem"><canvas id="pacfc"></canvas></div>';
+    clearCharts(); CHARTS.push(acfChart($('acfc'),r.acf,r.banda,'ACF (autocorrelación)')); CHARTS.push(acfChart($('pacfc'),r.pacf,r.banda,'PACF (autocorrelación parcial)'));
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Estacionariedad ---------- */
+function testCard(t){
+  const badge=t.estacionaria?'<span class="pill pill-g">estacionaria</span>':'<span class="pill pill-r">no estacionaria</span>';
+  const cv=Object.entries(t.cv).map(([k,v])=>`${k}: ${v}`).join(' · ');
+  return `<div class="card" style="margin:0"><h2 style="font-size:1rem">${t.prueba} ${badge}</h2>
+    <p class="small">H₀: ${t.H0}</p>
+    <div class="stat-grid">${'<div class="stat"><div class="k">Estadístico</div><div class="v">'+PSU.fmt(t.estadistico)+'</div></div>'}
+    <div class="stat"><div class="k">Valores críticos</div><div class="v" style="font-size:.8rem">${cv}</div></div></div></div>`;
+}
+$('e-run').addEventListener('click', async ()=>{
+  const y=PronoStat.numericValues($('e-col').value);
+  msg('Probando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/series/api/estacionariedad',{y,reg:$('e-reg').value,d:parseInt($('e-d').value)||0,D:parseInt($('e-D').value)||0,m:parseInt($('e-m').value)||12});
+    msg(''); $('result').classList.remove('hidden'); interp(r.interpretacion);
+    $('viz-title').textContent=`Estacionariedad (d=${r.d}, D=${r.D})`;
+    $('viz').innerHTML=`<div class="chart-grid">${testCard(r.adf)}${testCard(r.kpss)}</div>
+      <div class="section-title" style="margin-top:1rem">Serie ${(r.d||r.D)?'diferenciada':'original'}</div>
+      <div class="chart-box" style="height:200px"><canvas id="dif"></canvas></div>`;
+    clearCharts(); CHARTS.push(line($('dif'),r.serie_diferenciada.map((_,i)=>i+1),r.serie_diferenciada,'#0f766e'));
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+</script>
+{% endblock %}

@@ -46,6 +46,19 @@
       <div class="field" style="justify-content:flex-end"><button class="btn" id="tf-run">Generar tabla</button></div>
     </div>
     <div id="tf-out"></div>
+    <div id="tf-charts" class="hidden" style="margin-top:1.2rem">
+      <div class="chart-grid">
+        <div>
+          <div class="section-title">Histograma por clases (frecuencia fᵢ)</div>
+          <div class="chart-box"><canvas id="tfHist"></canvas></div>
+        </div>
+        <div>
+          <div class="section-title">Ojiva (frecuencia acumulada Fᵢ↑)</div>
+          <div class="chart-box"><canvas id="tfOjiva"></canvas></div>
+        </div>
+      </div>
+      <p class="small muted" style="margin-top:.4rem">El histograma usa exactamente las clases de la tabla (sin curva de ajuste). La ojiva acumula la frecuencia y se dibuja en el límite superior de cada clase.</p>
+    </div>
   </div>
   <div id="tb-doble" style="display:none">
     <p class="card-sub">Tabla de contingencia: cuenta las observaciones que combinan cada categoría de X y de Y (con márgenes).</p>
@@ -443,6 +456,48 @@ function renderMono(r,col){
   h+=`<tr class="best-row"><td><b>Total</b></td>${cont?'<td></td>':''}<td class="num"><b>${r.totales.fi}</b></td><td></td><td></td><td class="num"><b>1</b></td><td></td><td class="num"><b>100</b></td><td></td></tr>`;
   h+='</tbody></table></div>';
   $('tf-out').innerHTML=h;
+  renderFreqCharts(r);
+}
+
+let tfHistChart=null, tfOjivaChart=null;
+function renderFreqCharts(r){
+  if(typeof Chart==='undefined') return;
+  $('tf-charts').classList.remove('hidden');
+  const filas=r.filas, labels=filas.map(f=>f.clase);
+  if(tfHistChart){ tfHistChart.destroy(); } if(tfOjivaChart){ tfOjivaChart.destroy(); }
+
+  // 1) Histograma por clases: barras juntas = frecuencia absoluta fᵢ (sin curva de ajuste)
+  tfHistChart=new Chart($('tfHist'),{type:'bar',
+    data:{labels,datasets:[{label:'fᵢ',data:filas.map(f=>f.fi),
+      backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,categoryPercentage:1.0,barPercentage:1.0,
+      plugins:{legend:{display:false},title:{display:false}},
+      scales:{x:{title:{display:true,text:'clases'},ticks:{maxRotation:60,minRotation:0}},
+              y:{title:{display:true,text:'frecuencia fᵢ'},beginAtZero:true}}}});
+
+  // 2) Ojiva (acumulada ascendente Fᵢ↑). Continua: eje lineal en los límites, con punto inicial en 0.
+  const cont = filas.length>0 && filas[0].li!==undefined && filas[0].li!==null;
+  const numDisc = !cont && filas.every(f=>typeof f.marca==='number' && isFinite(f.marca));
+  if(cont || numDisc){
+    const pts = cont
+      ? [{x:filas[0].li,y:0}].concat(filas.map(f=>({x:f.ls,y:f.Fi_asc})))
+      : [{x:filas[0].marca,y:0}].concat(filas.map(f=>({x:f.marca,y:f.Fi_asc})));
+    tfOjivaChart=new Chart($('tfOjiva'),{type:'line',
+      data:{datasets:[{label:'Fᵢ↑ acumulada',data:pts,borderColor:'#1e3a8a',backgroundColor:'#1e3a8a',
+        borderWidth:2.5,pointRadius:3,tension:0,parsing:false,fill:false}]},
+      options:{responsive:true,maintainAspectRatio:false,parsing:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{type:'linear',title:{display:true,text:cont?'límite superior de clase':'valor'}},
+                y:{title:{display:true,text:'frecuencia acumulada Fᵢ↑'},beginAtZero:true}}}});
+  } else {
+    // Categórica: ojiva sobre eje de categorías (polígono acumulado)
+    tfOjivaChart=new Chart($('tfOjiva'),{type:'line',
+      data:{labels,datasets:[{label:'Fᵢ↑ acumulada',data:filas.map(f=>f.Fi_asc),
+        borderColor:'#1e3a8a',backgroundColor:'#1e3a8a',borderWidth:2.5,pointRadius:3,tension:0,fill:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{title:{display:true,text:'categoría'}},y:{title:{display:true,text:'frecuencia acumulada Fᵢ↑'},beginAtZero:true}}}});
+  }
 }
 
 $('td-run').addEventListener('click', async ()=>{

@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › SARIMAX</div>
-  <h1>🔗 SARIMAX <span class="pill pill-b">Versión 3</span></h1>
+  <h1>SARIMAX <span class="pill pill-b">Versión 3</span></h1>
   <p>Modela una serie de tiempo incorporando <b>variables externas (exógenas)</b>: regresión con
      errores SARIMA. Ideal cuando la demanda depende de precio, publicidad, clima, etc.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Regresión con errores SARIMA</h3>
+  <h3>Regresión con errores SARIMA</h3>
   <div class="formula">yₜ = β·Xₜ + nₜ,&nbsp;&nbsp; nₜ ~ SARIMA(p,d,q)(P,D,Q)ₘ</div>
   <p>Cada <b>β</b> mide el efecto de una variable externa sobre Y, mientras la parte SARIMA captura la
      dinámica temporal (tendencia, estacionalidad, autocorrelación) que la regresión sola ignoraría.
@@ -20,7 +20,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Como ARIMA, pero incorpora <i>variables externas</i> (exógenas) que influyen en la serie: precio, clima, publicidad, etc.</p>
   <p><b>¿Cómo se usa?</b> Elige la serie Y, marca las variables externas, define los órdenes SARIMA, el horizonte y un holdout, y pulsa «Estimar SARIMAX».</p>
@@ -51,7 +51,7 @@
 </div>
 
 <div id="result" class="hidden">
-  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
   <div class="card"><h2 id="rtitle">Resultado</h2><div id="viz"></div></div>
 </div>
 {% endblock %}
@@ -96,11 +96,11 @@ function render(r){
   const fc=r.forecast.map((v,i)=>({x:n+i+1,y:v})); fc.unshift({x:n,y:r.series[n-1]});
   const up=r.intervals.upper.map((v,i)=>({x:n+i+1,y:v})),lo=r.intervals.lower.map((v,i)=>({x:n+i+1,y:v}));
   up.unshift({x:n,y:r.series[n-1]});lo.unshift({x:n,y:r.series[n-1]});
-  const ds=[{label:'Serie',data:hist,borderColor:'#0f766e',borderWidth:2,pointRadius:1.5,parsing:false},
+  const ds=[{label:'Serie',data:hist,borderColor:'#1e3a8a',borderWidth:2,pointRadius:1.5,parsing:false},
     {label:'Ajuste',data:fit,borderColor:'#94a3b8',borderWidth:1,borderDash:[4,3],pointRadius:0,parsing:false},
     {label:`IC ${r.intervals.conf}%`,data:up,borderColor:'rgba(109,40,217,.2)',backgroundColor:'rgba(109,40,217,.12)',fill:'+1',pointRadius:0,borderWidth:0,parsing:false},
     {label:'_lo',data:lo,pointRadius:0,borderWidth:0,parsing:false},
-    {label:'Pronóstico',data:fc,borderColor:'#6d28d9',borderWidth:2.5,pointRadius:2,parsing:false}];
+    {label:'Pronóstico',data:fc,borderColor:'#4338ca',borderWidth:2.5,pointRadius:2,parsing:false}];
   if(r.test){const st=n-r.test.size;ds.push({label:'Predicción prueba',data:r.test.pred.map((v,i)=>({x:st+i+1,y:v})),borderColor:'#b45309',borderWidth:2,borderDash:[6,3],pointRadius:2,parsing:false});}
   CH.push(new Chart($('fc'),{type:'line',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,parsing:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{position:'top',labels:{filter:it=>it.text!=='_lo'}}},scales:{x:{type:'linear',title:{display:true,text:'t'}}}}}));
   $('result').scrollIntoView({behavior:'smooth'});

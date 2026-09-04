@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Econometría</div>
-  <h1>📐 Econometría</h1>
+  <h1>Econometría</h1>
   <p>Regresión lineal múltiple por <b>MCO</b>, con variables <b>dummy</b> e <b>interacciones</b>,
      <b>errores estándar robustos</b>, batería de <b>diagnósticos</b> y análisis de <b>influencia</b>.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 El modelo lineal múltiple</h3>
+  <h3>El modelo lineal múltiple</h3>
   <div class="formula">Y = β₀ + β₁X₁ + … + βₖXₖ + u &nbsp;·&nbsp; MCO minimiza Σû²</div>
   <p>Cada <b>βⱼ</b> es el efecto de Xⱼ manteniendo lo demás constante (ceteris paribus). El <b>t</b> y su
      <b>p</b> prueban H₀: βⱼ = 0; la <b>F</b> la significancia global. Bajo heterocedasticidad conviene usar
@@ -20,7 +20,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Ajusta un modelo que explica una variable a partir de varias (regresión lineal múltiple) y revisa si cumple los supuestos estadísticos.</p>
   <p><b>¿Cómo se usa?</b> Elige la variable dependiente Y, marca las explicativas numéricas y/o categóricas (se convierten en dummies), añade interacciones si quieres, elige la forma funcional y si usar errores robustos, y pulsa «Estimar por MCO».</p>
@@ -59,7 +59,7 @@
 
 <div id="results" class="hidden">
   <div class="card" style="border-left:4px solid var(--purple)">
-    <h2>🧭 Interpretación</h2>
+    <h2>Interpretación</h2>
     <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
   </div>
 
@@ -71,7 +71,7 @@
       <tbody></tbody></table></div>
     <p class="small muted" id="se-note" style="margin-top:.4rem"></p>
     <div class="stat-grid" id="fit" style="margin-top:1rem"></div>
-    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">Exportar a Excel</button></div>
   </div>
 
   <div class="card">
@@ -179,10 +179,10 @@ function render(r){
   const rp=r.ajustados.map((f,i)=>({x:f,y:r.residuos[i]}));
   resChart=mk(resChart,{ctx:$('resChart'),c:{data:{datasets:[{type:'scatter',data:rp,backgroundColor:'#b45309'}]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',title:{display:true,text:'Ajustado'}},y:{title:{display:true,text:'Residuo'},grid:{color:c=>c.tick.value===0?'#94a3b8':'#e2e8f0'}}}}}});
   const q=r.qq_resid,zmin=Math.min(...q.z),zmax=Math.max(...q.z);
-  qqChart=mk(qqChart,{ctx:$('qqChart'),c:{data:{datasets:[{type:'scatter',data:q.z.map((z,i)=>({x:z,y:q.sample[i]})),backgroundColor:'#0f766e'},{type:'line',data:[{x:zmin,y:q.intercept+q.slope*zmin},{x:zmax,y:q.intercept+q.slope*zmax}],borderColor:'#6d28d9',borderWidth:2,pointRadius:0,parsing:false}]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',title:{display:true,text:'Cuantiles teóricos'}},y:{title:{display:true,text:'Residuos ord.'}}}}}});
+  qqChart=mk(qqChart,{ctx:$('qqChart'),c:{data:{datasets:[{type:'scatter',data:q.z.map((z,i)=>({x:z,y:q.sample[i]})),backgroundColor:'#1e3a8a'},{type:'line',data:[{x:zmin,y:q.intercept+q.slope*zmin},{x:zmax,y:q.intercept+q.slope*zmax}],borderColor:'#4338ca',borderWidth:2,pointRadius:0,parsing:false}]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',title:{display:true,text:'Cuantiles teóricos'}},y:{title:{display:true,text:'Residuos ord.'}}}}}});
   const ymin=Math.min(...r.y_obs),ymax=Math.max(...r.y_obs);
-  pvoChart=mk(pvoChart,{ctx:$('pvoChart'),c:{data:{datasets:[{type:'scatter',data:r.y_obs.map((yo,i)=>({x:yo,y:r.ajustados[i]})),backgroundColor:'#0f766e'},{type:'line',data:[{x:ymin,y:ymin},{x:ymax,y:ymax}],borderColor:'#94a3b8',borderDash:[5,4],borderWidth:1.5,pointRadius:0,parsing:false}]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',title:{display:true,text:'Observado'}},y:{title:{display:true,text:'Predicho'}}}}}});
-  cookChart=mk(cookChart,{ctx:$('cookChart'),c:{data:{labels:r.cook.map((_,i)=>i+1),datasets:[{type:'bar',data:r.cook,backgroundColor:r.cook.map(v=>v>r.umbral_cook?'#dc2626':'#5eead4')},{type:'line',data:r.cook.map(()=>r.umbral_cook),borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'umbral 4/n'}},scales:{x:{title:{display:true,text:'observación'}},y:{title:{display:true,text:'Cook'},beginAtZero:true}}}}});
+  pvoChart=mk(pvoChart,{ctx:$('pvoChart'),c:{data:{datasets:[{type:'scatter',data:r.y_obs.map((yo,i)=>({x:yo,y:r.ajustados[i]})),backgroundColor:'#1e3a8a'},{type:'line',data:[{x:ymin,y:ymin},{x:ymax,y:ymax}],borderColor:'#94a3b8',borderDash:[5,4],borderWidth:1.5,pointRadius:0,parsing:false}]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',title:{display:true,text:'Observado'}},y:{title:{display:true,text:'Predicho'}}}}}});
+  cookChart=mk(cookChart,{ctx:$('cookChart'),c:{data:{labels:r.cook.map((_,i)=>i+1),datasets:[{type:'bar',data:r.cook,backgroundColor:r.cook.map(v=>v>r.umbral_cook?'#dc2626':'#bfdbfe')},{type:'line',data:r.cook.map(()=>r.umbral_cook),borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'umbral 4/n'}},scales:{x:{title:{display:true,text:'observación'}},y:{title:{display:true,text:'Cook'},beginAtZero:true}}}}});
   $('inflbox').innerHTML=r.influyentes.length?('<b>Observaciones influyentes (Cook > 4/n):</b> '+r.influyentes.map(o=>`fila ${o.i} (D=${PSU.fmt(o.cook)})`).join(' · ')):'<span class="muted">Sin observaciones influyentes (Cook ≤ 4/n).</span>';
 }
 

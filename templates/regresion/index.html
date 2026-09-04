@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Regresión</div>
-  <h1>📈 Ajuste de modelos</h1>
+  <h1>Ajuste de modelos</h1>
   <p>Relaciona dos variables (X → Y) y ajusta modelos <b>lineal</b>, <b>exponencial</b>,
      <b>logarítmico</b> y <b>polinómico</b>. Compara su calidad y predice nuevos valores.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Modelos y bondad de ajuste</h3>
+  <h3>Modelos y bondad de ajuste</h3>
   <div class="formula">Lineal: y = a + b·x &nbsp;|&nbsp; Exponencial: y = a·e^(b·x) &nbsp;|&nbsp; Log.: y = a + b·ln(x) &nbsp;|&nbsp; Polinómico: y = c₀ + c₁x + … + c_d x^d</div>
   <p>El <b>R²</b> mide la proporción de variabilidad explicada (0 a 1). El <b>R² ajustado</b> penaliza
      el exceso de parámetros, útil para comparar modelos con distinto número de coeficientes. El
@@ -21,7 +21,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Encuentra la ecuación que mejor relaciona dos variables (cómo cambia Y cuando cambia X) y mide qué tan bien ajusta.</p>
   <p><b>¿Cómo se usa?</b> Elige la variable X y la Y, el tipo de modelo (lineal, exponencial, logarítmico o polinómico) y pulsa «Ajustar modelo». Usa «Comparar los 4 modelos» para ver cuál ajusta mejor. Puedes predecir Y para nuevos valores de X.</p>
@@ -60,7 +60,7 @@
 
 <div id="results" class="hidden">
   <div class="card" style="border-left:4px solid var(--purple)">
-    <h2>🧭 Interpretación de resultados</h2>
+    <h2>Interpretación de resultados</h2>
     <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
   </div>
   <div class="card">
@@ -69,7 +69,7 @@
     <div class="stat-grid" id="stats"></div>
     <div id="params" class="small" style="margin-top:.8rem"></div>
     <div id="predbox" class="small" style="margin-top:.6rem"></div>
-    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">Exportar a Excel</button></div>
   </div>
   <div class="card">
     <h2>Gráficos</h2>
@@ -144,8 +144,8 @@ function render(r,cx,cy){
   const curve=r.curve.x.map((x,i)=>({x,y:r.curve.y[i]}));
   if(fitChart) fitChart.destroy();
   fitChart=new Chart($('fitChart'),{data:{datasets:[
-      {type:'scatter',label:'Datos',data:pts,backgroundColor:'#0f766e'},
-      {type:'line',label:`Ajuste (${r.model})`,data:curve,borderColor:'#6d28d9',borderWidth:2,pointRadius:0,parsing:false}
+      {type:'scatter',label:'Datos',data:pts,backgroundColor:'#1e3a8a'},
+      {type:'line',label:`Ajuste (${r.model})`,data:curve,borderColor:'#4338ca',borderWidth:2,pointRadius:0,parsing:false}
     ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,
       plugins:{legend:{position:'top'}},
       scales:{x:{type:'linear',title:{display:true,text:cx}},y:{title:{display:true,text:cy}}}}});
@@ -181,7 +181,7 @@ $('btnCompare').addEventListener('click', async ()=>{
       }
       tb.appendChild(tr);
     });
-    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">🔹 ${t}</p>`).join('');
+    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">${t}</p>`).join('');
     $('compare').scrollIntoView({behavior:'smooth'});
   }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 });

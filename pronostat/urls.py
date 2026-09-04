@@ -16,7 +16,7 @@ _MANIFEST = '''{
   "scope": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",
-  "theme_color": "#0f766e",
+  "theme_color": "#1e3a8a",
   "lang": "es",
   "icons": []
 }'''

@@ -4,11 +4,11 @@
 {% block nav_informes %}active{% endblock %}
 {% block content %}
 <div class="page-head"><div class="crumbs">Inicio › Informes</div>
-  <h1>📄 Informes automáticos <span class="pill pill-b">Versión 3</span></h1>
+  <h1>Informes automáticos <span class="pill pill-b">Versión 3</span></h1>
   <p>Genera un <b>resumen integral</b> del conjunto de datos cargado (perfil por columna, correlaciones y
      hallazgos) y descárgalo como <b>informe Excel</b> con un clic.</p></div>
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Genera automáticamente un resumen integral del conjunto de datos y lo exporta como informe Excel.</p>
   <p><b>¿Cómo se usa?</b> Con un dataset cargado, pulsa «Generar informe»; luego «Descargar informe Excel» para guardar el archivo.</p>
@@ -20,12 +20,12 @@
   <div id="needdata"></div>
   <div class="btn-row" id="controls">
     <button class="btn" id="gen">Generar informe</button>
-    <button class="btn btn-excel" id="xls" disabled>⬇ Descargar informe Excel</button>
+    <button class="btn btn-excel" id="xls" disabled>Descargar informe Excel</button>
   </div>
   <div id="msg"></div>
 </div>
 <div id="result" class="hidden">
-  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Hallazgos</h2><ul id="ins" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>Hallazgos</h2><ul id="ins" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
   <div class="card"><h2>Perfil por columna</h2><div class="table-wrap"><table id="perf"></table></div></div>
   <div class="card" id="corr-card"><h2>Matriz de correlaciones</h2><div class="table-wrap"><table id="corr"></table></div></div>
 </div>

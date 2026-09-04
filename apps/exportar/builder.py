@@ -73,7 +73,7 @@ def _save(wb):
 
 def _footer(ws, row):
     ws.cell(row=row + 1, column=1,
-            value=f"PronoStat · generado {datetime.now():%Y-%m-%d %H:%M} · Dr. César Ortiz Méndez · USACH").font = SUB_FONT
+            value=f"PronoStat · generado {datetime.now():%Y-%m-%d %H:%M} · Dr. César Ortiz Méndez · cv-cesarortiz.vercel.app").font = SUB_FONT
 
 
 def build_informe(res, source="dataset"):

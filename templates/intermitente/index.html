@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Demanda intermitente</div>
-  <h1>📦 Demanda intermitente <span class="pill pill-b">Versión 3</span></h1>
+  <h1>Demanda intermitente <span class="pill pill-b">Versión 3</span></h1>
   <p>Pronóstico de series con <b>muchos ceros</b> (repuestos, ítems de baja rotación) con los métodos
      <b>Croston</b>, <b>SBA</b> y <b>TSB</b>, y clasificación del patrón de demanda.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 ¿Por qué métodos especiales?</h3>
+  <h3>¿Por qué métodos especiales?</h3>
   <p>Los métodos clásicos (SES, Holt) fallan con demanda esporádica. <b>Croston</b> separa el <b>tamaño</b>
      de la demanda (z) del <b>intervalo</b> entre demandas (p) y los suaviza por separado: pronóstico = z/p.
      <b>SBA</b> corrige el sesgo de Croston (×(1−α/2)) y <b>TSB</b> actualiza la probabilidad de demanda cada
@@ -23,7 +23,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Pronostica series con muchos ceros (repuestos, ítems de baja rotación), donde los métodos normales fallan.</p>
   <p><b>¿Cómo se usa?</b> Elige la serie y el método (Croston, SBA o TSB), deja marcada la optimización de parámetros y pulsa «Pronosticar»; usa «Comparar» para ver los tres a la vez.</p>
@@ -49,7 +49,7 @@
 </div>
 
 <div id="result" class="hidden">
-  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
   <div class="card"><h2 id="rtitle">Resultado</h2><div id="viz"></div></div>
 </div>
 {% endblock %}
@@ -87,8 +87,8 @@ function render(r){
   const obs=r.series.concat(Array(r.h).fill(null));
   const rate=r.yhat.concat(r.forecast);
   CH=new Chart($('ch'),{data:{labels,datasets:[
-    {type:'bar',label:'Demanda',data:obs,backgroundColor:'#5eead4',borderColor:'#0f766e',borderWidth:1},
-    {type:'line',label:'Tasa estimada / pronóstico',data:rate,borderColor:'#6d28d9',borderWidth:2,pointRadius:0,tension:.1,spanGaps:true}
+    {type:'bar',label:'Demanda',data:obs,backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1},
+    {type:'line',label:'Tasa estimada / pronóstico',data:rate,borderColor:'#4338ca',borderWidth:2,pointRadius:0,tension:.1,spanGaps:true}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'período'}},y:{beginAtZero:true}}}});
   $('result').scrollIntoView({behavior:'smooth'});
 }

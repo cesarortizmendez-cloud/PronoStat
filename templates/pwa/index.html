@@ -4,11 +4,11 @@
 {% block nav_pwa %}active{% endblock %}
 {% block content %}
 <div class="page-head"><div class="crumbs">Inicio › Instalación / PWA</div>
-  <h1>📲 Instalación y sin conexión <span class="pill pill-b">Versión 3</span></h1>
+  <h1>Instalación y sin conexión <span class="pill pill-b">Versión 3</span></h1>
   <p>PronoStat es una <b>PWA</b> (aplicación web progresiva): puedes <b>instalarla</b> como app en tu equipo o
      celular y usar la interfaz <b>sin conexión</b> tras la primera visita.</p></div>
 
-<div class="theory"><h3>📚 ¿Qué es una PWA?</h3>
+<div class="theory"><h3>¿Qué es una PWA?</h3>
   <p>Una aplicación web que se instala como nativa (ícono, ventana propia) y usa un <b>service worker</b> para
      cachear páginas y funcionar sin internet. En PronoStat, sin conexión puedes <b>navegar los módulos y su
      teoría ya visitados</b>; los <b>cálculos</b> requieren conexión (se ejecutan en el servidor).</p></div>
@@ -16,7 +16,7 @@
 <div class="card">
   <h2><span class="step">1</span> Instalar la aplicación</h2>
   <div class="btn-row">
-    <button class="btn" id="install">⬇ Instalar PronoStat</button>
+    <button class="btn" id="install">Instalar PronoStat</button>
     <span id="inst-state" class="small muted"></span>
   </div>
   <div class="alert alert-info small" id="ios" style="display:none">En iPhone/iPad: abre en <b>Safari</b> → botón <b>Compartir</b> → <b>Agregar a pantalla de inicio</b>.</div>
@@ -43,8 +43,8 @@ function status(){
   const sw=('serviceWorker' in navigator);
   $('status').innerHTML=statCard('Conexión',online?'En línea':'Sin conexión',online?'#15803d':'#b91c1c')+
     statCard('Instalada',installed?'Sí ✓':'No (aún en navegador)',installed?'#15803d':'#64748b')+
-    statCard('Modo offline',sw?'Service worker activo':'No soportado',sw?'#0f766e':'#b91c1c')+
-    statCard('Módulos',MODS.length,'#0f766e');
+    statCard('Modo offline',sw?'Service worker activo':'No soportado',sw?'#1e3a8a':'#b91c1c')+
+    statCard('Módulos',MODS.length,'#1e3a8a');
 }
 status(); window.addEventListener('online',status); window.addEventListener('offline',status);
 

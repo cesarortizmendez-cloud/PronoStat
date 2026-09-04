@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#1e3a8a">
   <title>{% block title %}PronoStat{% endblock %} · PronoStat</title>
   <meta name="description" content="Laboratorio educativo de análisis de datos, series de tiempo y pronósticos.">
   <link rel="manifest" href="/manifest.json">
@@ -16,8 +16,8 @@
    Laboratorio educativo de análisis de datos, series de tiempo y pronósticos.
    =========================================================================== */
 :root{
-  --teal:#0f766e; --teal-d:#0b5850; --teal-l:#14b8a6;
-  --purple:#6d28d9; --purple-l:#ede9fe; --purple-b:#c4b5fd;
+  --teal:#1e3a8a; --teal-d:#172554; --teal-l:#3b82f6;
+  --purple:#4338ca; --purple-l:#e8ecfb; --purple-b:#c0c8f2;
   --amber:#b45309; --amber-l:#fef3c7;
   --green:#15803d; --green-l:#dcfce7;
   --red:#b91c1c; --red-l:#fee2e2;
@@ -35,28 +35,28 @@ body{font-family:var(--font);color:var(--ink);background:var(--bg);font-size:15p
 a{color:var(--teal)}
 
 /* ---------- Sidebar ---------- */
-.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:#0b3d38;
-  color:#d5efec;display:flex;flex-direction:column;z-index:40;transition:transform .25s ease}
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:#0b1f3f;
+  color:#dbe6f5;display:flex;flex-direction:column;z-index:40;transition:transform .25s ease}
 .brand{display:flex;gap:.7rem;align-items:center;padding:1.1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.09)}
 .brand-mark{font-size:1.7rem}
 .brand-name{font-weight:800;color:#fff;font-size:1.15rem;letter-spacing:.2px}
-.brand-sub{font-size:.68rem;color:#7fd8cc;text-transform:uppercase;letter-spacing:.5px}
+.brand-sub{font-size:.68rem;color:#93b4e6;text-transform:uppercase;letter-spacing:.5px}
 .nav{flex:1;overflow-y:auto;padding:.8rem .7rem}
-.nav-group{font-size:.66rem;text-transform:uppercase;letter-spacing:.8px;color:#5fb3a8;margin:1rem .5rem .4rem}
+.nav-group{font-size:.66rem;text-transform:uppercase;letter-spacing:.8px;color:#6b8cc4;margin:1rem .5rem .4rem}
 .nav-link{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.6rem .7rem;border-radius:10px;
-  color:#c9e9e3;text-decoration:none;font-weight:500;font-size:.92rem;margin-bottom:.15rem;transition:background .15s}
+  color:#d6e2f5;text-decoration:none;font-weight:500;font-size:.92rem;margin-bottom:.15rem;transition:background .15s}
 .nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-link.active{background:var(--teal-l);color:#04302b;font-weight:700}
-.badge-num{margin-left:auto;font-size:.62rem;background:rgba(255,255,255,.14);padding:.1rem .4rem;border-radius:6px;color:#a7f3d0}
+.nav-link.active{background:var(--teal-l);color:#ffffff;font-weight:700}
+.badge-num{margin-left:auto;font-size:.62rem;background:rgba(255,255,255,.14);padding:.1rem .4rem;border-radius:6px;color:#bfdbfe}
 .tag{margin-left:auto;font-size:.6rem;padding:.1rem .4rem;border-radius:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 .tag.mono{background:#1e3a5f;color:#93c5fd}
-.tag.bi{background:#3b2f5f;color:#c4b5fd}
+.tag.bi{background:#243b6b;color:#c0c8f2}
 .tag.ts{background:#4a3410;color:#fcd34d}
 .sidebar-foot{padding:.9rem 1rem;border-top:1px solid rgba(255,255,255,.09)}
 .ds-status{font-size:.74rem;padding:.45rem .6rem;border-radius:8px;font-weight:600;margin-bottom:.5rem}
-.ds-empty{background:rgba(255,255,255,.06);color:#8fb8b1}
+.ds-empty{background:rgba(255,255,255,.06);color:#8aa0c4}
 .ds-loaded{background:var(--green-l);color:var(--green)}
-.ver{font-size:.66rem;color:#5fb3a8}
+.ver{font-size:.66rem;color:#6b8cc4}
 
 /* ---------- Main ---------- */
 .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
@@ -169,10 +169,10 @@ td.num{font-family:var(--mono)}
   margin:1.3rem 0 .6rem;font-weight:700}
 
 /* ---------- Catálogo (home) ---------- */
-.hero{background:linear-gradient(135deg,#0b3d38,#0f766e);color:#fff;border-radius:var(--radius);
+.hero{background:linear-gradient(135deg,#0b1f3f,#1e3a8a);color:#fff;border-radius:var(--radius);
   padding:2rem 2rem;margin-bottom:1.6rem}
 .hero h1{margin:0 0 .5rem;font-size:2rem}
-.hero p{margin:0;max-width:60ch;color:#c9e9e3}
+.hero p{margin:0;max-width:60ch;color:#d6e2f5}
 .modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.1rem}
 .mod-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.3rem;
   text-decoration:none;color:inherit;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;display:block}
@@ -213,14 +213,13 @@ td.num{font-family:var(--mono)}
 
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <span class="brand-mark">📊</span>
       <div>
         <div class="brand-name">PronoStat</div>
         <div class="brand-sub">Análisis · Series · Pronósticos</div>
       </div>
     </div>
     <nav class="nav">
-      <a class="nav-link {% block nav_home %}{% endblock %}" href="/">🏠 Inicio</a>
+      <a class="nav-link {% block nav_home %}{% endblock %}" href="/">Inicio</a>
       <div class="nav-group">Flujo de análisis</div>
       <a class="nav-link {% block nav_datos %}{% endblock %}" href="/datos/">1 · Datos <span class="badge-num">Excel/CSV</span></a>
       <a class="nav-link {% block nav_muestreo %}{% endblock %}" href="/muestreo/">2 · Muestreo <span class="tag mono">técnicas</span></a>
@@ -252,8 +251,8 @@ td.num{font-family:var(--mono)}
     <header class="topbar">
       <div class="topbar-title">{% block topbar %}PronoStat{% endblock %}</div>
       <div class="topbar-right">
-        <span class="author">Dr. César Ortiz Méndez · USACH</span>
-        <button id="pwa-install" class="btn-install" hidden>⬇ Instalar</button>
+        <a class="author" href="https://cv-cesarortiz.vercel.app" target="_blank" rel="noopener">Dr. César Ortiz Méndez</a>
+        <button id="pwa-install" class="btn-install" hidden>Instalar</button>
       </div>
     </header>
     <div class="content">

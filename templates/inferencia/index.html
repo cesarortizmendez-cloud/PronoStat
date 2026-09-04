@@ -6,14 +6,14 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Inferencia</div>
-  <h1>🎯 Inferencia estadística</h1>
+  <h1>Inferencia estadística</h1>
   <p>Estimación por <b>intervalos de confianza</b> para la media (σ conocida y desconocida) y para
      proporciones, con <b>nivel de confianza ajustable</b> y <b>cálculo del tamaño de muestra (n)</b>.
      Funciona con tus datos cargados o ingresando el resumen de un ejercicio.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Fundamentos</h3>
+  <h3>Fundamentos</h3>
   <p>Un <b>intervalo de confianza</b> del (1−α)·100% para un parámetro es un rango construido a partir
      de la muestra que, en repeticiones del muestreo, contendría al parámetro esa proporción de veces.</p>
   <div class="formula">Media (σ conocida):  x̄ ± z<sub>α/2</sub>·σ/√n &nbsp;&nbsp;&nbsp; Media (σ desconocida):  x̄ ± t<sub>α/2,&nbsp;n−1</sub>·s/√n</div>
@@ -24,7 +24,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Estima parámetros de la población (media o proporción) con un margen de error, y calcula cuántos datos necesitas para una precisión dada.</p>
   <p><b>¿Cómo se usa?</b> Cuatro pestañas: IC para la media (marca si σ es conocida → usa Z, o desconocida → usa t), IC para proporción, y tamaño de muestra para media o proporción. Trabaja desde tus datos o ingresando el resumen de un ejercicio; hay ejemplos resueltos.</p>
@@ -127,7 +127,7 @@
   <div class="stat-grid" id="res-stats" style="margin-top:.8rem"></div>
   <div id="res-extra" style="margin-top:.8rem"></div>
   <div class="card" style="border-left:4px solid var(--purple);margin-top:1rem">
-    <h2 style="font-size:1rem">🧭 Interpretación</h2>
+    <h2 style="font-size:1rem">Interpretación</h2>
     <ul id="res-interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
   </div>
 </div>
@@ -181,11 +181,11 @@ function drawInterval(center,lo,hi,unidad=''){
   const a=lo-pad, b=hi+pad; const X=v=>((v-a)/(b-a))*100;
   return `<div style="position:relative;height:64px;margin:.4rem 0 1rem">
     <div style="position:absolute;top:34px;left:0;right:0;height:2px;background:#cbd5e1"></div>
-    <div style="position:absolute;top:26px;height:18px;background:#a7f3d0;border:1px solid #0f766e;border-radius:4px;left:${X(lo)}%;width:${X(hi)-X(lo)}%"></div>
-    <div style="position:absolute;top:20px;height:30px;width:2px;background:#6d28d9;left:${X(center)}%"></div>
-    <div style="position:absolute;top:2px;left:${X(lo)}%;transform:translateX(-50%);font-size:.72rem;color:#0f766e;font-weight:700">${PSU.fmt(lo)}${unidad}</div>
-    <div style="position:absolute;top:2px;left:${X(center)}%;transform:translateX(-50%);font-size:.72rem;color:#6d28d9;font-weight:700">${PSU.fmt(center)}${unidad}</div>
-    <div style="position:absolute;top:2px;left:${X(hi)}%;transform:translateX(-50%);font-size:.72rem;color:#0f766e;font-weight:700">${PSU.fmt(hi)}${unidad}</div>
+    <div style="position:absolute;top:26px;height:18px;background:#bfdbfe;border:1px solid #1e3a8a;border-radius:4px;left:${X(lo)}%;width:${X(hi)-X(lo)}%"></div>
+    <div style="position:absolute;top:20px;height:30px;width:2px;background:#4338ca;left:${X(center)}%"></div>
+    <div style="position:absolute;top:2px;left:${X(lo)}%;transform:translateX(-50%);font-size:.72rem;color:#1e3a8a;font-weight:700">${PSU.fmt(lo)}${unidad}</div>
+    <div style="position:absolute;top:2px;left:${X(center)}%;transform:translateX(-50%);font-size:.72rem;color:#4338ca;font-weight:700">${PSU.fmt(center)}${unidad}</div>
+    <div style="position:absolute;top:2px;left:${X(hi)}%;transform:translateX(-50%);font-size:.72rem;color:#1e3a8a;font-weight:700">${PSU.fmt(hi)}${unidad}</div>
     <div style="position:absolute;bottom:2px;left:${X(center)}%;transform:translateX(-50%);font-size:.68rem;color:#64748b">estimación puntual</div>
   </div>`;
 }

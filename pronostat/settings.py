@@ -1,7 +1,7 @@
 """
 PronoStat — Configuración principal de Django.
 Laboratorio educativo de Análisis de Datos, Series de Tiempo y Pronósticos.
-Dr. César Ortiz Méndez · Ingeniería Industrial · USACH
+Dr. César Ortiz Méndez
 
 Misma arquitectura que IO-Lab Pro: cada módulo es una app independiente,
 cálculo stateless (JSON entra / JSON sale), sin modelos custom, estáticos con WhiteNoise.

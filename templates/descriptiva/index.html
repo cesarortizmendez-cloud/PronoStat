@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Descriptiva</div>
-  <h1>📏 Estadística descriptiva</h1>
+  <h1>Estadística descriptiva</h1>
   <p>Resumen numérico y <b>gráficos exploratorios profesionales</b> de una variable numérica, con la
      opción de <b>segmentar por grupos</b> para comparar distribuciones.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Conceptos</h3>
+  <h3>Conceptos</h3>
   <p><b>Tendencia central:</b> media (x̄), mediana y moda. <b>Dispersión:</b> desviación estándar (s),
      varianza (s²), rango, IQR y coeficiente de variación (CV = s/x̄·100).</p>
   <div class="formula">x̄ = (1/n)·Σxᵢ &nbsp;&nbsp; s² = Σ(xᵢ−x̄)²/(n−1) &nbsp;&nbsp; CV% = (s/x̄)·100</div>
@@ -21,7 +21,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Resume una variable con números y gráficos, y arma tablas de frecuencia. Sirve para conocer el centro, la dispersión, la forma y los valores atípicos de los datos.</p>
   <p><b>¿Cómo se usa?</b> Elige una variable numérica (y, opcionalmente, una variable de segmentación para comparar grupos) y pulsa «Analizar». Explora los distintos gráficos con los botones. Abajo, en «Tablas de distribución de frecuencias», genera la tabla monovariada o la de doble entrada.</p>
@@ -31,7 +31,7 @@
 </details>
 
 <div class="card">
-  <h2>📋 Tablas de distribución de frecuencias</h2>
+  <h2>Tablas de distribución de frecuencias</h2>
   <div id="tbl-needdata"></div>
   <div class="btn-row" id="tbl-controls" style="gap:.4rem;margin-bottom:.4rem">
     <button class="btn btn-ghost tbtab active" data-t="mono">Monovariada</button>
@@ -84,7 +84,7 @@
 
 <div id="results" class="hidden">
   <div class="card" style="border-left:4px solid var(--purple)">
-    <h2>🧭 Interpretación de resultados</h2>
+    <h2>Interpretación de resultados</h2>
     <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
   </div>
 
@@ -92,7 +92,7 @@
     <h2>Resumen numérico</h2>
     <div class="stat-grid" id="stats"></div>
     <div id="extra" class="small muted" style="margin-top:.8rem"></div>
-    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">Exportar a Excel</button></div>
   </div>
 
   <div class="card hidden" id="group-card">
@@ -124,7 +124,7 @@
 {% block scripts %}
 <script>
 const $=id=>document.getElementById(id);
-const PAL=['#0f766e','#6d28d9','#b45309','#1d4ed8','#be185d','#15803d','#0891b2','#a16207','#7c3aed','#dc2626','#0d9488','#4f46e5'];
+const PAL=['#1e3a8a','#4338ca','#b45309','#1d4ed8','#be185d','#15803d','#0891b2','#a16207','#7c3aed','#dc2626','#0d9488','#4f46e5'];
 let mainChart=null, LAST=null, LASTCOL='', SEG='', CURTAB='hist';
 
 const NOTES={
@@ -254,11 +254,11 @@ function drawHist(){
         scales:{x:{type:'linear',title:{display:true,text:LASTCOL}},y:{title:{display:true,text:'densidad'},beginAtZero:true}}}});
     return;
   }
-  const ds=[{type:'bar',label:'Frecuencia',data:o.hist.counts,backgroundColor:'#5eead4',borderColor:'#0f766e',borderWidth:1,order:3}];
+  const ds=[{type:'bar',label:'Frecuencia',data:o.hist.counts,backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1,order:3}];
   const maxc=Math.max(...o.hist.counts);
   if(o.density){ const md=Math.max(...o.density.y);
     ds.push({type:'line',label:'Densidad (KDE)',data:o.density.x.map((x,i)=>({x,y:o.density.y[i]*maxc/md})),
-      borderColor:'#6d28d9',borderWidth:2,pointRadius:0,tension:.3,parsing:false,order:1}); }
+      borderColor:'#4338ca',borderWidth:2,pointRadius:0,tension:.3,parsing:false,order:1}); }
   if(o.normal){ const mn=Math.max(...o.normal.y);
     ds.push({type:'line',label:'Normal teórica',data:o.normal.x.map((x,i)=>({x,y:o.normal.y[i]*maxc/mn})),
       borderColor:'#b45309',borderWidth:2,borderDash:[6,3],pointRadius:0,tension:.3,parsing:false,order:2}); }
@@ -270,7 +270,7 @@ function drawHist(){
 /* ===== Boxplot(s) en SVG ===== */
 function boxData(){
   return LAST.grouped ? LAST.grouped.groups.filter(g=>g.boxplot).map((g,i)=>({name:g.name,b:g.boxplot,c:PAL[i%PAL.length]}))
-                      : [{name:LASTCOL,b:LAST.overall.boxplot,c:'#0f766e'}];
+                      : [{name:LASTCOL,b:LAST.overall.boxplot,c:'#1e3a8a'}];
 }
 function scaleAll(items){
   let lo=Infinity,hi=-Infinity;
@@ -306,7 +306,7 @@ function drawBox(){
 /* ===== Violín en SVG (densidad espejada) ===== */
 function violinData(){
   return LAST.grouped ? LAST.grouped.groups.filter(g=>g.density).map((g,i)=>({name:g.name,d:g.density,b:g.boxplot,c:PAL[i%PAL.length]}))
-                      : (LAST.overall.density? [{name:LASTCOL,d:LAST.overall.density,b:LAST.overall.boxplot,c:'#0f766e'}]:[]);
+                      : (LAST.overall.density? [{name:LASTCOL,d:LAST.overall.density,b:LAST.overall.boxplot,c:'#1e3a8a'}]:[]);
 }
 function drawViolin(){
   useCanvas(false);
@@ -342,7 +342,7 @@ function drawQQ(){
   const zmin=Math.min(...q.z),zmax=Math.max(...q.z);
   const line=[{x:zmin,y:q.intercept+q.slope*zmin},{x:zmax,y:q.intercept+q.slope*zmax}];
   mainChart=new Chart($('mainChart'),{data:{datasets:[
-    {type:'scatter',label:'Datos',data:pts,backgroundColor:'#0f766e'},
+    {type:'scatter',label:'Datos',data:pts,backgroundColor:'#1e3a8a'},
     {type:'line',label:'Referencia normal',data:line,borderColor:'#b45309',borderWidth:2,pointRadius:0,parsing:false}
   ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{position:'top'},title:{display:true,text:`Q-Q normal de ${LASTCOL}`}},
     scales:{x:{type:'linear',title:{display:true,text:'Cuantiles teóricos (z)'}},y:{title:{display:true,text:'Cuantiles muestrales'}}}}});
@@ -395,8 +395,8 @@ function drawPareto(){
   const labels=arr.map(x=>x[0]); const vals=arr.map(x=>x[1]);
   const cum=arr.map(x=>{acc+=x[1];return +(acc/total*100).toFixed(1);});
   mainChart=new Chart($('mainChart'),{data:{labels,datasets:[
-    {type:'bar',label:'Frecuencia',data:vals,backgroundColor:'#5eead4',borderColor:'#0f766e',borderWidth:1,yAxisID:'y',order:2},
-    {type:'line',label:'% acumulado',data:cum,borderColor:'#6d28d9',borderWidth:2,pointRadius:3,yAxisID:'y2',order:1},
+    {type:'bar',label:'Frecuencia',data:vals,backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1,yAxisID:'y',order:2},
+    {type:'line',label:'% acumulado',data:cum,borderColor:'#4338ca',borderWidth:2,pointRadius:3,yAxisID:'y2',order:1},
     {type:'line',label:'80%',data:labels.map(()=>80),borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0,yAxisID:'y2',order:0}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'},title:{display:true,text:`Pareto de ${SEG}`}},
     scales:{y:{title:{display:true,text:'Frecuencia'},beginAtZero:true},

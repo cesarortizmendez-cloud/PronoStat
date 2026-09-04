@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Pronósticos</div>
-  <h1>🔮 Pronósticos</h1>
+  <h1>Pronósticos</h1>
   <p>Modela una serie de tiempo con métodos clásicos, evalúa su exactitud con métricas estándar,
      genera intervalos de predicción y compara modelos para elegir el mejor.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Métodos y métricas</h3>
+  <h3>Métodos y métricas</h3>
   <p><b>Ingenuo:</b> el pronóstico es el último valor. <b>Promedio móvil:</b> media de las últimas k
      observaciones. <b>SES:</b> promedio ponderado con pesos que decaen (α). <b>Holt:</b> agrega
      tendencia (β). <b>Holt-Winters:</b> agrega estacionalidad (γ), aditiva o multiplicativa.</p>
@@ -22,7 +22,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Proyecta a futuro una serie de tiempo con métodos clásicos y te dice cuál pronostica mejor.</p>
   <p><b>¿Cómo se usa?</b> Elige la serie y el modelo (ingenuo, promedio móvil, SES, Holt o Holt-Winters), fija el horizonte y, para una evaluación honesta, un conjunto de prueba (holdout). Pulsa «Pronosticar» o «Comparar modelos».</p>
@@ -68,14 +68,14 @@
 
 <div id="results" class="hidden">
   <div class="card" style="border-left:4px solid var(--purple)">
-    <h2>🧭 Interpretación de resultados</h2>
+    <h2>Interpretación de resultados</h2>
     <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
   </div>
   <div class="card">
     <h2 id="res-title">Pronóstico</h2>
     <div class="chart-box tall"><canvas id="fcChart"></canvas></div>
     <div id="params" class="small muted" style="margin-top:.7rem"></div>
-    <div class="btn-row"><button class="btn btn-excel" id="btnExport">⬇ Exportar a Excel</button></div>
+    <div class="btn-row"><button class="btn btn-excel" id="btnExport">Exportar a Excel</button></div>
   </div>
 
   <div class="chart-grid">
@@ -170,12 +170,12 @@ function render(r,col){
   up.unshift({x:n,y:r.series[n-1]}); lo.unshift({x:n,y:r.series[n-1]});
 
   const ds=[
-    {label:'Serie observada',data:hist,borderColor:'#0f766e',backgroundColor:'#0f766e',borderWidth:2,pointRadius:2,tension:.15,parsing:false},
+    {label:'Serie observada',data:hist,borderColor:'#1e3a8a',backgroundColor:'#1e3a8a',borderWidth:2,pointRadius:2,tension:.15,parsing:false},
     {label:'Ajuste',data:fitted,borderColor:'#94a3b8',borderWidth:1.5,borderDash:[4,3],pointRadius:0,parsing:false},
     {label:`IC ${r.intervals.conf}%`,data:up,borderColor:'rgba(109,40,217,.25)',backgroundColor:'rgba(109,40,217,.12)',
        fill:'+1',pointRadius:0,borderWidth:0,parsing:false},
     {label:'_lo',data:lo,borderColor:'rgba(109,40,217,.25)',pointRadius:0,borderWidth:0,parsing:false},
-    {label:'Pronóstico',data:fc,borderColor:'#6d28d9',borderWidth:2.5,pointRadius:2,parsing:false},
+    {label:'Pronóstico',data:fc,borderColor:'#4338ca',borderWidth:2.5,pointRadius:2,parsing:false},
   ];
   if(r.test){
     const start=n-r.test.size;
@@ -231,7 +231,7 @@ $('btnCompare').addEventListener('click', async ()=>{
       }
       tb.appendChild(tr);
     });
-    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">🔹 ${t}</p>`).join('');
+    document.getElementById('cmp-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.25rem 0">${t}</p>`).join('');
     $('compare').scrollIntoView({behavior:'smooth'});
   }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 });

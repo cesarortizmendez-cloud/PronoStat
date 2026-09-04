@@ -6,13 +6,13 @@
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › ARIMA</div>
-  <h1>🧮 ARIMA / SARIMA <span class="pill pill-a">Versión 2</span></h1>
+  <h1>ARIMA / SARIMA <span class="pill pill-a">Versión 2</span></h1>
   <p>Modelos <b>AR, MA, ARMA, ARIMA</b> y <b>SARIMA</b> por mínimos cuadrados condicionales, con
      <b>diagnóstico de residuos</b>, <b>selección automática</b> y <b>validación con origen móvil</b>.</p>
 </div>
 
 <div class="theory">
-  <h3>📚 Metodología Box-Jenkins</h3>
+  <h3>Metodología Box-Jenkins</h3>
   <div class="formula">SARIMA(p,d,q)(P,D,Q)ₘ:  Φ(Bᵐ)φ(B)(1−B)ᵈ(1−Bᵐ)ᴰ yₜ = c + Θ(Bᵐ)θ(B) eₜ</div>
   <p><b>p, q</b>: órdenes AR y MA · <b>d</b>: diferenciación regular · <b>P, D, Q, m</b>: componentes
      estacionales. Pasos: (1) identificar con ACF/PACF y pruebas de estacionariedad (módulo 8),
@@ -22,7 +22,7 @@
 </div>
 
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Modela una serie de tiempo con la metodología Box-Jenkins (ARIMA y SARIMA) para pronosticar con base estadística.</p>
   <p><b>¿Cómo se usa?</b> Tres pestañas: «Estimar» ajusta un ARIMA(p,d,q)(P,D,Q) que tú especificas; «Selección automática» busca el mejor modelo por AICc; «Validación» evalúa con origen móvil. Identifica los órdenes con el módulo 8 (ACF/PACF y estacionariedad).</p>
@@ -88,7 +88,7 @@
 </div>
 
 <div id="result" class="hidden">
-  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
   <div class="card" id="viz-card"><h2 id="viz-title">Resultado</h2><div id="viz"></div></div>
 </div>
 {% endblock %}
@@ -141,18 +141,18 @@ function renderEst(r){
   clearCh();
   // ACF de residuos
   const lab=lb.acf.map((_,i)=>i), banda=lb.banda;
-  CH.push(new Chart($('acfr'),{data:{labels:lab,datasets:[{type:'bar',data:lb.acf,backgroundColor:lb.acf.map((v,i)=>i===0?'#94a3b8':(Math.abs(v)>banda?'#b45309':'#a7f3d0')),barPercentage:.5},{type:'line',data:lab.map(()=>banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0},{type:'line',data:lab.map(()=>-banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'ACF de residuos',align:'start'}},scales:{y:{suggestedMin:-1,suggestedMax:1}}}}));
+  CH.push(new Chart($('acfr'),{data:{labels:lab,datasets:[{type:'bar',data:lb.acf,backgroundColor:lb.acf.map((v,i)=>i===0?'#94a3b8':(Math.abs(v)>banda?'#b45309':'#bfdbfe')),barPercentage:.5},{type:'line',data:lab.map(()=>banda),borderColor:'#4338ca',borderDash:[5,4],borderWidth:1,pointRadius:0},{type:'line',data:lab.map(()=>-banda),borderColor:'#4338ca',borderDash:[5,4],borderWidth:1,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'ACF de residuos',align:'start'}},scales:{y:{suggestedMin:-1,suggestedMax:1}}}}));
   // pronóstico
   const n=r.n; const hist=r.series.map((v,i)=>({x:i+1,y:v}));
   const fit=r.fitted.map((v,i)=>v==null?null:{x:i+1,y:v}).filter(Boolean);
   const fc=r.forecast.map((v,i)=>({x:n+i+1,y:v})); fc.unshift({x:n,y:r.series[n-1]});
   const up=r.intervals.upper.map((v,i)=>({x:n+i+1,y:v})); const lo=r.intervals.lower.map((v,i)=>({x:n+i+1,y:v}));
   up.unshift({x:n,y:r.series[n-1]}); lo.unshift({x:n,y:r.series[n-1]});
-  const ds=[{label:'Serie',data:hist,borderColor:'#0f766e',borderWidth:2,pointRadius:1.5,parsing:false},
+  const ds=[{label:'Serie',data:hist,borderColor:'#1e3a8a',borderWidth:2,pointRadius:1.5,parsing:false},
     {label:'Ajuste',data:fit,borderColor:'#94a3b8',borderWidth:1,borderDash:[4,3],pointRadius:0,parsing:false},
     {label:`IC ${r.intervals.conf}%`,data:up,borderColor:'rgba(109,40,217,.2)',backgroundColor:'rgba(109,40,217,.12)',fill:'+1',pointRadius:0,borderWidth:0,parsing:false},
     {label:'_lo',data:lo,pointRadius:0,borderWidth:0,parsing:false},
-    {label:'Pronóstico',data:fc,borderColor:'#6d28d9',borderWidth:2.5,pointRadius:2,parsing:false}];
+    {label:'Pronóstico',data:fc,borderColor:'#4338ca',borderWidth:2.5,pointRadius:2,parsing:false}];
   if(r.test){ const st=n-r.test.size; ds.push({label:'Predicción prueba',data:r.test.pred.map((v,i)=>({x:st+i+1,y:v})),borderColor:'#b45309',borderWidth:2,borderDash:[6,3],pointRadius:2,parsing:false}); }
   CH.push(new Chart($('fc'),{type:'line',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,parsing:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{position:'top',labels:{filter:it=>it.text!=='_lo'}}},scales:{x:{type:'linear',title:{display:true,text:'t'}},y:{}}}}));
   $('result').scrollIntoView({behavior:'smooth'});
@@ -189,7 +189,7 @@ $('cv-run').addEventListener('click', async ()=>{
       <div class="section-title" style="margin-top:1rem">Error por origen</div>
       <div class="chart-box" style="height:220px"><canvas id="cvc"></canvas></div>`;
     clearCh();
-    CH.push(new Chart($('cvc'),{data:{labels:r.origenes.map(o=>o.origen),datasets:[{type:'line',label:'RMSE',data:r.origenes.map(o=>o.rmse),borderColor:'#0f766e',borderWidth:2,pointRadius:2},{type:'line',label:'MAE',data:r.origenes.map(o=>o.mae),borderColor:'#b45309',borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'origen (t)'}}}}}));
+    CH.push(new Chart($('cvc'),{data:{labels:r.origenes.map(o=>o.origen),datasets:[{type:'line',label:'RMSE',data:r.origenes.map(o=>o.rmse),borderColor:'#1e3a8a',borderWidth:2,pointRadius:2},{type:'line',label:'MAE',data:r.origenes.map(o=>o.mae),borderColor:'#b45309',borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'origen (t)'}}}}}));
     $('result').scrollIntoView({behavior:'smooth'});
   }catch(err){ msg(err.message,'alert-err'); }
 });

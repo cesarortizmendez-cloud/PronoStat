@@ -4,13 +4,13 @@
 {% block nav_multiple %}active{% endblock %}
 {% block content %}
 <div class="page-head"><div class="crumbs">Inicio › Pronósticos múltiples</div>
-  <h1>🗂️ Pronósticos múltiples <span class="pill pill-b">Versión 3</span></h1>
+  <h1>Pronósticos múltiples <span class="pill pill-b">Versión 3</span></h1>
   <p>Aplica el mismo modelo a <b>muchas series a la vez</b> (una cartera de productos, sucursales o SKUs) y obtén una tabla con todos los pronósticos.</p></div>
-<div class="theory"><h3>📚 Pronóstico por lotes</h3>
+<div class="theory"><h3>Pronóstico por lotes</h3>
   <p>En la práctica rara vez se pronostica una sola serie: se automatiza el proceso para cientos de ítems. Este módulo
      ejecuta el modelo elegido sobre cada columna seleccionada y reporta el pronóstico y su exactitud (MAPE/MASE).</p></div>
 <details class="card" style="cursor:pointer">
-  <summary style="font-weight:700;font-size:1rem">📘 Manual de utilización del módulo</summary>
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Aplica el mismo modelo de pronóstico a muchas series a la vez (pronóstico por lotes), útil para carteras de productos, sucursales o SKUs.</p>
   <p><b>¿Cómo se usa?</b> Elige el modelo, el horizonte y marca las series (columnas) a pronosticar; pulsa «Pronosticar todas».</p>
@@ -31,7 +31,7 @@
   <div id="msg"></div>
 </div>
 <div id="result" class="hidden">
-  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
   <div class="card"><h2 id="rtit">Pronósticos</h2><div class="table-wrap"><table id="tab"></table></div></div>
 </div>
 {% endblock %}

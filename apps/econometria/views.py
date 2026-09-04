@@ -16,7 +16,8 @@ def ols_api(request):
     try:
         p = json.loads(request.body.decode('utf-8') or '{}')
         return JsonResponse(solver.ols(
-            p['Y'], p['Xcols'], p['xnames'],
-            p.get('yname', 'Y'), p.get('form', 'nivel'), int(p.get('conf', 95))))
+            p['Y'], p.get('numvars'), p.get('catvars'), p.get('interactions'),
+            p.get('yname', 'Y'), p.get('form', 'nivel'),
+            int(p.get('conf', 95)), bool(p.get('robust', False))))
     except Exception as e:
         return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)

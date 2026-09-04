@@ -59,3 +59,14 @@ def pronostico(request):
         return _xlsx(data, f"pronostico_{p['resultado'].get('model','modelo')}.xlsx")
     except Exception as e:
         return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)
+
+
+@csrf_exempt
+@require_POST
+def econometria(request):
+    try:
+        p = _body(request)
+        data = builder.build_econometria(p['resultado'])
+        return _xlsx(data, "econometria_mco.xlsx")
+    except Exception as e:
+        return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)

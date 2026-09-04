@@ -76,6 +76,72 @@ def _footer(ws, row):
             value=f"PronoStat · generado {datetime.now():%Y-%m-%d %H:%M} · Dr. César Ortiz Méndez · USACH").font = SUB_FONT
 
 
+def build_econometria(res):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Modelo"
+    r = _title(ws, f"PronoStat — Econometría (MCO · {res.get('form_label','')})",
+               f"Dependiente: {res.get('yname','Y')} · n = {res['n']} · k = {res['k']} · gl = {res['gl']}"
+               + (" · errores robustos (White HC1)" if res.get("robust") else ""))
+    ws.cell(row=r, column=1, value="Ecuación:").font = BOLD
+    ws.cell(row=r, column=2, value=res["equation"]); r += 2
+
+    r = _header_row(ws, ["Variable", "Coef. β", "Error est.", "t", "p-valor", "Sig.",
+                         "β estand.", "IC inf.", "IC sup."], r)
+    for c in res["coeficientes"]:
+        ws.cell(row=r, column=1, value=c["var"]).border = BORDER
+        _num(ws, r, 2, c["beta"]); _num(ws, r, 3, c["se"]); _num(ws, r, 4, c["t"])
+        _num(ws, r, 5, c["p"])
+        ws.cell(row=r, column=6, value=c["stars"]).border = BORDER
+        _num(ws, r, 7, c["beta_std"] if c["beta_std"] is not None else None)
+        _num(ws, r, 8, c["ic"][0]); _num(ws, r, 9, c["ic"][1])
+        r += 1
+    r += 1
+    a = res["ajuste"]
+    ws.cell(row=r, column=1, value="Bondad de ajuste").font = BOLD; r += 1
+    r = _header_row(ws, ["Indicador", "Valor"], r)
+    for k, v in [("R²", a["r2"]), ("R² ajustado", a["r2_adj"]), ("F global", a["F"]),
+                 ("p (F)", a["pF"]), ("Error est. regresión", a["se_reg"]),
+                 ("AIC", a["aic"]), ("BIC", a["bic"])]:
+        ws.cell(row=r, column=1, value=k).border = BORDER
+        _num(ws, r, 2, v); r += 1
+    _autosize(ws)
+
+    # Diagnósticos
+    ws2 = wb.create_sheet("Diagnósticos")
+    rr = _header_row(ws2, ["Prueba", "Estadístico", "p-valor / valor"], 1)
+    d = res["diagnostics"]
+
+    def add(name, stat, p):
+        nonlocal rr
+        ws2.cell(row=rr, column=1, value=name).border = BORDER
+        c = ws2.cell(row=rr, column=2, value=stat); c.border = BORDER
+        c2 = ws2.cell(row=rr, column=3, value=p); c2.border = BORDER
+        if isinstance(p, (int, float)):
+            c2.number_format = "0.0000"
+        rr += 1
+    if d.get("condition_number") == d.get("condition_number"):
+        add("Número de condición", round(d["condition_number"], 2), "—")
+    if d.get("durbin_watson") == d.get("durbin_watson"):
+        add("Durbin-Watson", round(d["durbin_watson"], 4), "—")
+    for key, nm in [("breusch_pagan", "Breusch-Pagan"), ("white", "White"),
+                    ("breusch_godfrey", "Breusch-Godfrey"), ("jarque_bera", "Jarque-Bera"), ("reset", "Ramsey RESET")]:
+        t = d.get(key)
+        if t:
+            stat = t.get("LM", t.get("JB", t.get("F")))
+            add(nm, round(stat, 4) if stat is not None else "—", t.get("p"))
+    if d.get("vif"):
+        rr += 1
+        ws2.cell(row=rr, column=1, value="VIF").font = BOLD; rr += 1
+        rr = _header_row(ws2, ["Variable", "VIF"], rr)
+        for v in d["vif"]:
+            ws2.cell(row=rr, column=1, value=v["var"]).border = BORDER
+            _num(ws2, rr, 2, v["vif"]); rr += 1
+    _autosize(ws2)
+    _interp_sheet(wb, res)
+    return _save(wb)
+
+
 def _interp_sheet(wb, res, title="Interpretación"):
     """Agrega una hoja con la interpretación educativa de los resultados."""
     lines = (res or {}).get("interpretacion") or []

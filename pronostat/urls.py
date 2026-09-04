@@ -55,6 +55,7 @@ urlpatterns = [
     path('regresion/', include('apps.regresion.urls')),
     path('pronostico/', include('apps.pronostico.urls')),
     path('inferencia/', include('apps.inferencia.urls')),
+    path('econometria/', include('apps.econometria.urls')),
     path('exportar/', include('apps.exportar.urls')),
     # PWA
     path('manifest.json', manifest, name='manifest'),

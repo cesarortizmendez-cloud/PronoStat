@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block title %}6 · Econometría{% endblock %}
+{% block topbar %}6 · Econometría — Regresión lineal múltiple (MCO){% endblock %}
+{% block nav_econ %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Econometría</div>
+  <h1>📐 Econometría</h1>
+  <p>Modelo de <b>regresión lineal múltiple</b> estimado por <b>Mínimos Cuadrados Ordinarios (MCO)</b>,
+     con inferencia completa, formas funcionales y diagnóstico de los supuestos de Gauss-Markov.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 El modelo lineal múltiple</h3>
+  <div class="formula">Y = β₀ + β₁X₁ + β₂X₂ + … + βₖXₖ + u</div>
+  <p>MCO elige los β que minimizan la suma de residuos al cuadrado. Cada <b>βⱼ</b> mide el efecto de Xⱼ
+     sobre Y <i>manteniendo constantes las demás variables</i> (ceteris paribus). El estadístico
+     <b>t</b> = βⱼ/EE(βⱼ) y su <b>valor p</b> prueban H₀: βⱼ = 0. La prueba <b>F</b> evalúa la significancia
+     global del modelo.</p>
+  <p><b>Supuestos de Gauss-Markov</b> (para que MCO sea el mejor estimador lineal insesgado, MELI): linealidad,
+     no multicolinealidad perfecta, media condicional cero, <b>homocedasticidad</b> y <b>no autocorrelación</b>.
+     Aquí se diagnostican con VIF, Breusch-Pagan, Durbin-Watson y Jarque-Bera.</p>
+</div>
+
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Símbolos, formas funcionales y diagnósticos</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>βⱼ</b>: coeficiente · <b>EE</b>: error estándar · <b>t</b>: β/EE · <b>R²/R² ajust.</b>: bondad de ajuste · <b>F</b>: significancia global · <b>AIC/BIC</b>: criterios de información (menor = mejor)</p>
+    <p><b>Formas funcionales:</b> <i>Nivel-Nivel</i> (β = cambio en unidades) · <i>Log-Log</i> (β = <b>elasticidad</b>, % ante 1%) · <i>Log-Nivel</i> (β·100 = % ante 1 unidad, tasa de crecimiento) · <i>Nivel-Log</i> (β/100 = unidades ante 1%)</p>
+    <p><b>VIF</b> (multicolinealidad): &gt;10 grave, 5–10 moderado · <b>Durbin-Watson</b> (autocorrelación): ≈2 ideal, &lt;1,5 positiva · <b>Breusch-Pagan</b> (heterocedasticidad): p&lt;0,05 hay problema · <b>Jarque-Bera</b> (normalidad de u): p&lt;0,05 no normal</p>
+    <p>Una <b>variable dummy</b> es una columna 0/1 (ej. mujer=1); su coeficiente mide la diferencia respecto a la categoría base.</p>
+  </div>
+</details>
+
+<div class="card">
+  <h2><span class="step">1</span> Especificación del modelo</h2>
+  <div id="needdata"></div>
+  <div id="controls">
+    <div class="grid grid-3">
+      <div class="field"><label for="y">Variable dependiente (Y)</label><select id="y"></select></div>
+      <div class="field"><label for="form">Forma funcional</label>
+        <select id="form">
+          <option value="nivel">Nivel-Nivel</option>
+          <option value="loglog">Log-Log (elasticidades)</option>
+          <option value="loglin">Log-Nivel (semilog)</option>
+          <option value="linlog">Nivel-Log</option>
+        </select></div>
+      <div class="field"><label for="conf">Nivel de confianza (%)</label><input type="number" id="conf" value="95" min="80" max="99.9" step="0.5"></div>
+    </div>
+    <div class="field" style="margin-top:.6rem">
+      <label>Variables explicativas (X) — marca dos o más para regresión múltiple</label>
+      <div id="xlist" class="grid grid-3" style="gap:.3rem;margin-top:.3rem"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btnRun">Estimar por MCO</button>
+    </div>
+  </div>
+  <div id="run-msg"></div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)">
+    <h2>🧭 Interpretación</h2>
+    <ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
+
+  <div class="card">
+    <h2 id="res-title">Resultados de la estimación</h2>
+    <div class="alert alert-ok" id="eqbox"></div>
+    <div class="table-wrap"><table id="coefTable">
+      <thead><tr><th>Variable</th><th>Coef. β</th><th>Error est.</th><th>t</th><th>p-valor</th><th>Sig.</th><th>IC inferior</th><th>IC superior</th></tr></thead>
+      <tbody></tbody></table></div>
+    <p class="small muted" style="margin-top:.4rem">Significancia: *** p&lt;0,01 · ** p&lt;0,05 · * p&lt;0,10</p>
+    <div class="stat-grid" id="fit" style="margin-top:1rem"></div>
+  </div>
+
+  <div class="card">
+    <h2>Diagnóstico de supuestos</h2>
+    <div class="table-wrap"><table id="diagTable">
+      <thead><tr><th>Prueba</th><th>Qué evalúa</th><th>Estadístico</th><th>Resultado</th></tr></thead>
+      <tbody></tbody></table></div>
+    <div id="vifbox" style="margin-top:1rem"></div>
+  </div>
+
+  <div class="card">
+    <h2>Gráficos de residuos</h2>
+    <div class="chart-grid">
+      <div><div class="section-title">Residuos vs. ajustados (homocedasticidad)</div><div class="chart-box"><canvas id="resChart"></canvas></div></div>
+      <div><div class="section-title">Q-Q de residuos (normalidad)</div><div class="chart-box"><canvas id="qqChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Predicción</h2>
+    <p class="card-sub">Ingresa valores de las X para estimar Ŷ con el modelo.</p>
+    <div id="predInputs" class="grid grid-3"></div>
+    <div class="btn-row"><button class="btn btn-ghost" id="btnPred">Calcular Ŷ</button></div>
+    <div id="predOut" class="small" style="margin-top:.5rem"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+let resChart,qqChart,LAST=null,LASTX=[];
+
+function initCols(){
+  if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return; }
+  const nums=PronoStat.numericColumns();
+  if(nums.length<2){ $('needdata').innerHTML='<div class="alert alert-warn">Se necesitan al menos 2 columnas numéricas.</div>'; $('controls').style.display='none'; return; }
+  PSU.fillColumnSelect($('y'),nums);
+  $('y').addEventListener('change',renderX);
+  renderX();
+}
+function renderX(){
+  const y=$('y').value, nums=PronoStat.numericColumns();
+  $('xlist').innerHTML=nums.filter(c=>c!==y).map(c=>
+    `<label class="check"><input type="checkbox" class="xcb" value="${c}"> ${c}</label>`).join('');
+}
+initCols();
+
+$('btnRun').addEventListener('click', run);
+async function run(){
+  const y=$('y').value;
+  const xs=[...document.querySelectorAll('.xcb')].filter(c=>c.checked).map(c=>c.value);
+  if(!xs.length){ $('run-msg').innerHTML='<div class="alert alert-warn">Selecciona al menos una variable explicativa.</div>'; return; }
+  const d=PronoStat.get();
+  const Y=d.rows.map(r=>Number(r[y]));
+  const Xcols=xs.map(x=>d.rows.map(r=>Number(r[x])));
+  $('run-msg').innerHTML='Estimando por MCO… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/econometria/api/ols',{Y,Xcols,xnames:xs,yname:y,form:$('form').value,conf:parseFloat($('conf').value)||95});
+    LAST=r; LASTX=xs; $('run-msg').innerHTML=''; render(r);
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+}
+
+function stat(k,v,u=''){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div>${u?`<div class="u">${u}</div>`:''}</div>`;}
+
+function render(r){
+  $('results').classList.remove('hidden');
+  $('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
+  $('res-title').textContent=`MCO · ${r.form_label} · n=${r.n}, k=${r.k}`;
+  $('eqbox').innerHTML=`<b>Ecuación estimada:</b> <span class="mono">${r.equation}</span>`;
+  $('coefTable').querySelector('tbody').innerHTML=r.coeficientes.map(c=>
+    `<tr><td><b>${c.var}</b></td><td class="num">${PSU.fmt(c.beta)}</td><td class="num">${PSU.fmt(c.se)}</td>
+      <td class="num">${PSU.fmt(c.t)}</td><td class="num">${c.p<1e-4?c.p.toExponential(2):PSU.fmt(c.p)}</td>
+      <td style="text-align:center;color:#b45309;font-weight:700">${c.stars}</td>
+      <td class="num">${PSU.fmt(c.ic[0])}</td><td class="num">${PSU.fmt(c.ic[1])}</td></tr>`).join('');
+  const a=r.ajuste;
+  $('fit').innerHTML=stat('R²',a.r2)+stat('R² ajustado',a.r2_adj)+stat('F',a.F)+stat('p (F)',a.pF<1e-4?a.pF.toExponential(2):a.pF)+
+    stat('Error est. regresión',a.se_reg)+stat('AIC',a.aic)+stat('BIC',a.bic)+stat('n',r.n)+stat('gl',r.gl);
+
+  // diagnósticos
+  const dg=r.diagnostics; const rows=[];
+  const dw=dg.durbin_watson;
+  const dwok=dw>=1.5&&dw<=2.5;
+  rows.push(['Durbin-Watson','Autocorrelación de residuos',PSU.fmt(dw),dwok?['ok','≈2, sin autocorrelación']:['warn','posible autocorrelación']]);
+  const bp=dg.breusch_pagan;
+  if(bp) rows.push(['Breusch-Pagan','Heterocedasticidad',`LM=${PSU.fmt(bp.LM)} (p=${PSU.fmt(bp.p)})`, bp.p<0.05?['warn','hay heterocedasticidad']:['ok','homocedástico']]);
+  const jb=dg.jarque_bera;
+  rows.push(['Jarque-Bera','Normalidad de residuos',`JB=${PSU.fmt(jb.JB)} (p=${PSU.fmt(jb.p)})`, jb.p<0.05?['warn','residuos no normales']:['ok','≈ normal']]);
+  $('diagTable').querySelector('tbody').innerHTML=rows.map(([t,q,e,st])=>
+    `<tr><td><b>${t}</b></td><td class="small">${q}</td><td class="num">${e}</td>
+      <td><span class="pill ${st[0]==='ok'?'pill-g':'pill-a'}">${st[1]}</span></td></tr>`).join('');
+  if(dg.vif){
+    $('vifbox').innerHTML='<div class="section-title">Multicolinealidad (VIF)</div><div class="table-wrap"><table><thead><tr><th>Variable</th><th>VIF</th><th>Estado</th></tr></thead><tbody>'+
+      dg.vif.map(v=>{const s=v.vif>10?['pill-r','grave']:(v.vif>5?['pill-a','moderado']:['pill-g','ok']);
+        return `<tr><td>${v.var}</td><td class="num">${PSU.fmt(v.vif)}</td><td><span class="pill ${s[0]}">${s[1]}</span></td></tr>`;}).join('')+'</tbody></table></div>';
+  } else $('vifbox').innerHTML='<p class="small muted">VIF requiere 2 o más variables explicativas.</p>';
+
+  // gráficos
+  const rp=r.ajustados.map((f,i)=>({x:f,y:r.residuos[i]}));
+  if(resChart) resChart.destroy();
+  resChart=new Chart($('resChart'),{data:{datasets:[{type:'scatter',label:'Residuo',data:rp,backgroundColor:'#b45309'}]},
+    options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},
+      scales:{x:{type:'linear',title:{display:true,text:'Ajustado'}},y:{title:{display:true,text:'Residuo'},grid:{color:c=>c.tick.value===0?'#94a3b8':'#e2e8f0'}}}}});
+  const q=r.qq_resid; const zmin=Math.min(...q.z),zmax=Math.max(...q.z);
+  const qpts=q.z.map((z,i)=>({x:z,y:q.sample[i]}));
+  const line=[{x:zmin,y:q.intercept+q.slope*zmin},{x:zmax,y:q.intercept+q.slope*zmax}];
+  if(qqChart) qqChart.destroy();
+  qqChart=new Chart($('qqChart'),{data:{datasets:[
+    {type:'scatter',label:'Residuos',data:qpts,backgroundColor:'#0f766e'},
+    {type:'line',label:'Normal',data:line,borderColor:'#6d28d9',borderWidth:2,pointRadius:0,parsing:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{display:false}},
+    scales:{x:{type:'linear',title:{display:true,text:'Cuantiles teóricos'}},y:{title:{display:true,text:'Residuos ordenados'}}}}});
+
+  // predicción
+  $('predInputs').innerHTML=LASTX.map(x=>`<div class="field"><label>${x}</label><input type="number" step="any" class="predx" data-x="${x}"></div>`).join('');
+  $('predOut').innerHTML='';
+}
+
+$('btnPred')?.addEventListener('click',()=>{
+  if(!LAST) return;
+  const co=LAST.coeficientes; let z=co[0].beta; let ok=true;
+  document.querySelectorAll('.predx').forEach((inp,i)=>{
+    let v=parseFloat(inp.value); if(Number.isNaN(v)){ok=false;return;}
+    if(LAST.logX){ if(v<=0){ok=false;return;} v=Math.log(v); }
+    z+=co[i+1].beta*v;
+  });
+  if(!ok){ $('predOut').innerHTML='<span style="color:#b91c1c">Completa todos los valores (positivos si hay log).</span>'; return; }
+  let yhat=LAST.logY? Math.exp(z): z;
+  $('predOut').innerHTML=`Ŷ estimado = <b class="mono">${PSU.fmt(yhat)}</b>${LAST.logY?' (retransformado desde ln Ŷ)':''}`;
+});
+</script>
+{% endblock %}

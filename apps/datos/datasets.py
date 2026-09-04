@@ -5449,6 +5449,1360 @@ DATASETS = [
     "demanda_unid": 3060
    }
   ]
+ },
+ {
+  "id": "salarios",
+  "nombre": "Salarios (ecuación de Mincer)",
+  "sector": "Econometría",
+  "periodo": "transversal",
+  "m": 0,
+  "caracteristicas": [
+   "regresión múltiple",
+   "variable dummy",
+   "elasticidades",
+   "log-nivel"
+  ],
+  "descripcion": "Muestra de 220 trabajadores: sueldo (CLP) según educación (años), experiencia (años) y una variable dummy (mujer=1). Caso clásico para regresión lineal múltiple y para modelos log-nivel (retorno de la educación como % por año).",
+  "columns": [
+   {
+    "name": "educacion_anios",
+    "type": "numérico"
+   },
+   {
+    "name": "experiencia_anios",
+    "type": "numérico"
+   },
+   {
+    "name": "mujer",
+    "type": "numérico"
+   },
+   {
+    "name": "sueldo_clp",
+    "type": "numérico"
+   }
+  ],
+  "rows": [
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 6.0,
+    "mujer": 0,
+    "sueldo_clp": 775000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 2.0,
+    "mujer": 0,
+    "sueldo_clp": 468000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 27.0,
+    "mujer": 0,
+    "sueldo_clp": 2100000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 17.0,
+    "mujer": 0,
+    "sueldo_clp": 711000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 21.0,
+    "mujer": 1,
+    "sueldo_clp": 573000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 10.0,
+    "mujer": 0,
+    "sueldo_clp": 1179000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 1058000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 12.0,
+    "mujer": 1,
+    "sueldo_clp": 682000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 19.0,
+    "mujer": 1,
+    "sueldo_clp": 931000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 26.0,
+    "mujer": 0,
+    "sueldo_clp": 765000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 941000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 950000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 7.0,
+    "mujer": 0,
+    "sueldo_clp": 855000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 26.0,
+    "mujer": 1,
+    "sueldo_clp": 1239000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 2.0,
+    "mujer": 0,
+    "sueldo_clp": 826000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 987000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 28.0,
+    "mujer": 0,
+    "sueldo_clp": 1352000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 27.0,
+    "mujer": 0,
+    "sueldo_clp": 1557000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 13.0,
+    "mujer": 0,
+    "sueldo_clp": 584000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 11.0,
+    "mujer": 0,
+    "sueldo_clp": 483000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 3.0,
+    "mujer": 0,
+    "sueldo_clp": 1167000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 1068000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 7.0,
+    "mujer": 1,
+    "sueldo_clp": 574000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 28.0,
+    "mujer": 0,
+    "sueldo_clp": 1197000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 30.0,
+    "mujer": 1,
+    "sueldo_clp": 1318000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 22.0,
+    "mujer": 1,
+    "sueldo_clp": 978000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 28.0,
+    "mujer": 1,
+    "sueldo_clp": 617000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 1540000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 35.0,
+    "mujer": 0,
+    "sueldo_clp": 2007000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 6.0,
+    "mujer": 1,
+    "sueldo_clp": 438000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 35.0,
+    "mujer": 1,
+    "sueldo_clp": 364000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 19.0,
+    "mujer": 0,
+    "sueldo_clp": 663000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 0.0,
+    "mujer": 1,
+    "sueldo_clp": 515000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 17.0,
+    "mujer": 1,
+    "sueldo_clp": 1352000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 15.0,
+    "mujer": 1,
+    "sueldo_clp": 603000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 30.0,
+    "mujer": 1,
+    "sueldo_clp": 604000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 14.0,
+    "mujer": 1,
+    "sueldo_clp": 747000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 6.0,
+    "mujer": 1,
+    "sueldo_clp": 504000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 15.0,
+    "mujer": 0,
+    "sueldo_clp": 1219000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 737000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 28.0,
+    "mujer": 1,
+    "sueldo_clp": 805000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 11.0,
+    "mujer": 1,
+    "sueldo_clp": 673000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 6.0,
+    "mujer": 0,
+    "sueldo_clp": 1116000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 33.0,
+    "mujer": 0,
+    "sueldo_clp": 1409000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 792000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 15.0,
+    "mujer": 1,
+    "sueldo_clp": 729000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 10.0,
+    "mujer": 0,
+    "sueldo_clp": 1129000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 21.0,
+    "mujer": 0,
+    "sueldo_clp": 877000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 15.0,
+    "mujer": 0,
+    "sueldo_clp": 701000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 21.0,
+    "mujer": 0,
+    "sueldo_clp": 1171000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 728000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 31.0,
+    "mujer": 0,
+    "sueldo_clp": 857000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 16.0,
+    "mujer": 1,
+    "sueldo_clp": 1091000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 874000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 23.0,
+    "mujer": 1,
+    "sueldo_clp": 868000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 906000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 23.0,
+    "mujer": 1,
+    "sueldo_clp": 930000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 4.0,
+    "mujer": 1,
+    "sueldo_clp": 1192000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 27.0,
+    "mujer": 0,
+    "sueldo_clp": 699000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 2.0,
+    "mujer": 0,
+    "sueldo_clp": 1375000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 23.0,
+    "mujer": 0,
+    "sueldo_clp": 497000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 3.0,
+    "mujer": 0,
+    "sueldo_clp": 1243000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 34.0,
+    "mujer": 0,
+    "sueldo_clp": 635000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 29.0,
+    "mujer": 0,
+    "sueldo_clp": 1199000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 15.0,
+    "mujer": 1,
+    "sueldo_clp": 1073000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 30.0,
+    "mujer": 1,
+    "sueldo_clp": 2073000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 29.0,
+    "mujer": 1,
+    "sueldo_clp": 611000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 6.0,
+    "mujer": 0,
+    "sueldo_clp": 605000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 6.0,
+    "mujer": 1,
+    "sueldo_clp": 655000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 20.0,
+    "mujer": 1,
+    "sueldo_clp": 679000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 35.0,
+    "mujer": 0,
+    "sueldo_clp": 953000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 5.0,
+    "mujer": 1,
+    "sueldo_clp": 301000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 7.0,
+    "mujer": 1,
+    "sueldo_clp": 513000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 20.0,
+    "mujer": 0,
+    "sueldo_clp": 1147000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 1606000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 10.0,
+    "mujer": 0,
+    "sueldo_clp": 1145000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 28.0,
+    "mujer": 0,
+    "sueldo_clp": 1125000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 9.0,
+    "mujer": 0,
+    "sueldo_clp": 2545000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 5.0,
+    "mujer": 0,
+    "sueldo_clp": 939000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 440000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 1024000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 33.0,
+    "mujer": 0,
+    "sueldo_clp": 484000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 708000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 1085000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 14.0,
+    "mujer": 0,
+    "sueldo_clp": 587000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 16.0,
+    "mujer": 1,
+    "sueldo_clp": 1008000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 21.0,
+    "mujer": 0,
+    "sueldo_clp": 1165000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 435000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 26.0,
+    "mujer": 0,
+    "sueldo_clp": 840000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 4.0,
+    "mujer": 0,
+    "sueldo_clp": 602000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 1025000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 14.0,
+    "mujer": 1,
+    "sueldo_clp": 417000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 1.0,
+    "mujer": 0,
+    "sueldo_clp": 374000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 1204000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 22.0,
+    "mujer": 0,
+    "sueldo_clp": 1159000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 20.0,
+    "mujer": 1,
+    "sueldo_clp": 1068000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 22.0,
+    "mujer": 0,
+    "sueldo_clp": 1164000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 12.0,
+    "mujer": 1,
+    "sueldo_clp": 989000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 17.0,
+    "mujer": 0,
+    "sueldo_clp": 940000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 34.0,
+    "mujer": 0,
+    "sueldo_clp": 932000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 17.0,
+    "mujer": 1,
+    "sueldo_clp": 850000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 35.0,
+    "mujer": 0,
+    "sueldo_clp": 1206000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 28.0,
+    "mujer": 0,
+    "sueldo_clp": 1148000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 9.0,
+    "mujer": 0,
+    "sueldo_clp": 768000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 26.0,
+    "mujer": 1,
+    "sueldo_clp": 941000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 21.0,
+    "mujer": 1,
+    "sueldo_clp": 667000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 24.0,
+    "mujer": 0,
+    "sueldo_clp": 910000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 1.0,
+    "mujer": 0,
+    "sueldo_clp": 691000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 4.0,
+    "mujer": 0,
+    "sueldo_clp": 1416000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 28.0,
+    "mujer": 0,
+    "sueldo_clp": 836000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 17.0,
+    "mujer": 0,
+    "sueldo_clp": 1012000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 23.0,
+    "mujer": 0,
+    "sueldo_clp": 2145000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 4.0,
+    "mujer": 0,
+    "sueldo_clp": 772000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 13.0,
+    "mujer": 0,
+    "sueldo_clp": 1469000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 2.0,
+    "mujer": 1,
+    "sueldo_clp": 763000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 25.0,
+    "mujer": 0,
+    "sueldo_clp": 1262000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 32.0,
+    "mujer": 1,
+    "sueldo_clp": 1193000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 11.0,
+    "mujer": 1,
+    "sueldo_clp": 1752000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 20.0,
+    "mujer": 1,
+    "sueldo_clp": 753000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 26.0,
+    "mujer": 0,
+    "sueldo_clp": 682000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 5.0,
+    "mujer": 0,
+    "sueldo_clp": 904000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 1.0,
+    "mujer": 1,
+    "sueldo_clp": 754000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 20.0,
+    "mujer": 1,
+    "sueldo_clp": 1273000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 11.0,
+    "mujer": 0,
+    "sueldo_clp": 613000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 22.0,
+    "mujer": 1,
+    "sueldo_clp": 923000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 641000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 779000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 30.0,
+    "mujer": 0,
+    "sueldo_clp": 774000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 32.0,
+    "mujer": 0,
+    "sueldo_clp": 1161000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 658000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 1066000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 35.0,
+    "mujer": 0,
+    "sueldo_clp": 525000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 9.0,
+    "mujer": 1,
+    "sueldo_clp": 1644000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 9.0,
+    "mujer": 1,
+    "sueldo_clp": 991000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 23.0,
+    "mujer": 0,
+    "sueldo_clp": 1174000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 3.0,
+    "mujer": 0,
+    "sueldo_clp": 825000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 32.0,
+    "mujer": 0,
+    "sueldo_clp": 2429000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 853000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 7.0,
+    "mujer": 1,
+    "sueldo_clp": 367000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 35.0,
+    "mujer": 1,
+    "sueldo_clp": 731000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 5.0,
+    "mujer": 1,
+    "sueldo_clp": 416000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 24.0,
+    "mujer": 1,
+    "sueldo_clp": 844000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 15.0,
+    "mujer": 1,
+    "sueldo_clp": 652000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 23.0,
+    "mujer": 1,
+    "sueldo_clp": 1103000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 30.0,
+    "mujer": 0,
+    "sueldo_clp": 1150000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 6.0,
+    "mujer": 0,
+    "sueldo_clp": 757000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 717000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 17.0,
+    "mujer": 0,
+    "sueldo_clp": 1214000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 27.0,
+    "mujer": 1,
+    "sueldo_clp": 509000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 15.0,
+    "mujer": 1,
+    "sueldo_clp": 962000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 25.0,
+    "mujer": 0,
+    "sueldo_clp": 866000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 32.0,
+    "mujer": 1,
+    "sueldo_clp": 464000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 24.0,
+    "mujer": 1,
+    "sueldo_clp": 528000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 30.0,
+    "mujer": 0,
+    "sueldo_clp": 1631000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 26.0,
+    "mujer": 1,
+    "sueldo_clp": 1343000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 27.0,
+    "mujer": 1,
+    "sueldo_clp": 820000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 12.0,
+    "mujer": 0,
+    "sueldo_clp": 1053000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 22.0,
+    "mujer": 0,
+    "sueldo_clp": 1822000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 948000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 18.0,
+    "mujer": 0,
+    "sueldo_clp": 686000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 31.0,
+    "mujer": 0,
+    "sueldo_clp": 1771000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 21.0,
+    "mujer": 0,
+    "sueldo_clp": 891000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 9.0,
+    "mujer": 1,
+    "sueldo_clp": 473000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 0.0,
+    "mujer": 0,
+    "sueldo_clp": 1402000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 25.0,
+    "mujer": 1,
+    "sueldo_clp": 869000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 23.0,
+    "mujer": 0,
+    "sueldo_clp": 715000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 33.0,
+    "mujer": 0,
+    "sueldo_clp": 498000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 12.0,
+    "mujer": 1,
+    "sueldo_clp": 616000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 2.0,
+    "mujer": 1,
+    "sueldo_clp": 631000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 21.0,
+    "mujer": 1,
+    "sueldo_clp": 1179000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 1418000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 6.0,
+    "mujer": 1,
+    "sueldo_clp": 566000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 19.0,
+    "mujer": 0,
+    "sueldo_clp": 1225000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 26.0,
+    "mujer": 1,
+    "sueldo_clp": 1405000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 34.0,
+    "mujer": 0,
+    "sueldo_clp": 714000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 753000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 12.0,
+    "mujer": 1,
+    "sueldo_clp": 1569000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 4.0,
+    "mujer": 1,
+    "sueldo_clp": 481000
+   },
+   {
+    "educacion_anios": 12.0,
+    "experiencia_anios": 0.0,
+    "mujer": 0,
+    "sueldo_clp": 1006000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 20.0,
+    "mujer": 0,
+    "sueldo_clp": 1127000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 32.0,
+    "mujer": 0,
+    "sueldo_clp": 1120000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 21.0,
+    "mujer": 0,
+    "sueldo_clp": 1316000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 31.0,
+    "mujer": 1,
+    "sueldo_clp": 434000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 13.0,
+    "mujer": 1,
+    "sueldo_clp": 880000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 1601000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 26.0,
+    "mujer": 1,
+    "sueldo_clp": 1441000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 34.0,
+    "mujer": 0,
+    "sueldo_clp": 1091000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 1094000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 19.0,
+    "mujer": 1,
+    "sueldo_clp": 657000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 4.0,
+    "mujer": 1,
+    "sueldo_clp": 1145000
+   },
+   {
+    "educacion_anios": 15.0,
+    "experiencia_anios": 26.0,
+    "mujer": 0,
+    "sueldo_clp": 1429000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 32.0,
+    "mujer": 1,
+    "sueldo_clp": 1755000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 30.0,
+    "mujer": 1,
+    "sueldo_clp": 508000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 2.0,
+    "mujer": 1,
+    "sueldo_clp": 682000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 760000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 32.0,
+    "mujer": 1,
+    "sueldo_clp": 701000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 18.0,
+    "mujer": 1,
+    "sueldo_clp": 480000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 4.0,
+    "mujer": 0,
+    "sueldo_clp": 800000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 1.0,
+    "mujer": 1,
+    "sueldo_clp": 494000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 5.0,
+    "mujer": 1,
+    "sueldo_clp": 490000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 559000
+   },
+   {
+    "educacion_anios": 18.0,
+    "experiencia_anios": 16.0,
+    "mujer": 0,
+    "sueldo_clp": 1481000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 16.0,
+    "mujer": 1,
+    "sueldo_clp": 460000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 8.0,
+    "mujer": 1,
+    "sueldo_clp": 1073000
+   },
+   {
+    "educacion_anios": 19.0,
+    "experiencia_anios": 10.0,
+    "mujer": 0,
+    "sueldo_clp": 1363000
+   },
+   {
+    "educacion_anios": 14.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 501000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 22.0,
+    "mujer": 0,
+    "sueldo_clp": 896000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 16.0,
+    "mujer": 1,
+    "sueldo_clp": 944000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 0.0,
+    "mujer": 0,
+    "sueldo_clp": 1019000
+   },
+   {
+    "educacion_anios": 13.0,
+    "experiencia_anios": 32.0,
+    "mujer": 1,
+    "sueldo_clp": 974000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 14.0,
+    "mujer": 1,
+    "sueldo_clp": 1240000
+   },
+   {
+    "educacion_anios": 16.0,
+    "experiencia_anios": 14.0,
+    "mujer": 0,
+    "sueldo_clp": 785000
+   },
+   {
+    "educacion_anios": 9.0,
+    "experiencia_anios": 10.0,
+    "mujer": 0,
+    "sueldo_clp": 480000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 5.0,
+    "mujer": 0,
+    "sueldo_clp": 596000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 4.0,
+    "mujer": 1,
+    "sueldo_clp": 1070000
+   },
+   {
+    "educacion_anios": 11.0,
+    "experiencia_anios": 28.0,
+    "mujer": 1,
+    "sueldo_clp": 768000
+   },
+   {
+    "educacion_anios": 17.0,
+    "experiencia_anios": 0.0,
+    "mujer": 1,
+    "sueldo_clp": 772000
+   },
+   {
+    "educacion_anios": 10.0,
+    "experiencia_anios": 11.0,
+    "mujer": 1,
+    "sueldo_clp": 449000
+   },
+   {
+    "educacion_anios": 20.0,
+    "experiencia_anios": 33.0,
+    "mujer": 1,
+    "sueldo_clp": 1079000
+   },
+   {
+    "educacion_anios": 8.0,
+    "experiencia_anios": 8.0,
+    "mujer": 0,
+    "sueldo_clp": 313000
+   }
+  ]
  }
 ]
 

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block title %}2 · Muestreo{% endblock %}
+{% block topbar %}2 · Muestreo — Técnicas, tamaño y estimación{% endblock %}
+{% block nav_muestreo %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Muestreo</div>
+  <h1>🎲 Muestreo</h1>
+  <p>Técnicas de muestreo probabilístico, <b>extracción de muestras</b> desde tus datos,
+     <b>cálculo del tamaño de muestra</b>, <b>asignación estratificada</b> y <b>estimación</b> basada en el diseño.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 ¿Por qué muestrear?</h3>
+  <p>Estudiar toda la <b>población</b> (N elementos) suele ser caro o imposible; se estudia una <b>muestra</b>
+     (n elementos) y se infiere al total. En el muestreo <b>probabilístico</b> cada unidad tiene una probabilidad
+     conocida de ser elegida, lo que permite medir el <b>error de muestreo</b>.</p>
+  <div class="formula">Fracción de muestreo f = n/N &nbsp;·&nbsp; Corrección población finita (fpc) = √((N−n)/(N−1))</div>
+  <p>Tamaño de muestra: media → n = (z·σ/E)²; proporción → n = z²·p(1−p)/E². En poblaciones finitas se corrige a la baja.</p>
+</div>
+
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Técnicas y símbolos</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>Probabilísticas:</b> <i>Aleatorio simple (MAS)</i> — cada unidad igual probabilidad · <i>Sistemático</i> — cada k-ésima unidad (k = N/n) tras un arranque aleatorio · <i>Estratificado</i> — se divide en estratos homogéneos y se muestrea en cada uno · <i>Por conglomerados</i> — se eligen grupos completos.</p>
+    <p><b>No probabilísticas</b> (sin marco de probabilidad): por conveniencia, por cuotas, por juicio, bola de nieve. Útiles pero no permiten medir el error de muestreo.</p>
+    <p><b>N</b>: población · <b>n</b>: muestra · <b>N_h, n_h</b>: tamaño del estrato h · <b>W_h</b>=N_h/N: peso · <b>S_h</b>: desviación del estrato · <b>E</b>: error máximo · <b>f</b>=n/N: fracción de muestreo</p>
+    <p><b>Asignación proporcional:</b> n_h = n·(N_h/N) · <b>Asignación de Neyman (óptima):</b> n_h = n·(N_h·S_h)/Σ(N_h·S_h)</p>
+  </div>
+</details>
+
+<div class="card">
+  <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
+    <button class="btn btn-ghost mtab active" data-m="extraer">Extraer muestra</button>
+    <button class="btn btn-ghost mtab" data-m="tam">Tamaño de muestra</button>
+    <button class="btn btn-ghost mtab" data-m="asig">Asignación estratificada</button>
+    <button class="btn btn-ghost mtab" data-m="estim">Estimación</button>
+  </div>
+
+  <!-- ===== EXTRAER ===== -->
+  <div class="mode" id="m-extraer">
+    <p class="card-sub">Extrae una muestra del conjunto de datos cargado y compárala con la población.</p>
+    <div id="needdata"></div>
+    <div id="ex-controls" class="grid grid-3">
+      <div class="field"><label>Técnica</label><select id="ex-met">
+        <option value="mas">Aleatorio simple (MAS)</option>
+        <option value="sistematico">Sistemático</option>
+        <option value="estratificado">Estratificado (proporcional)</option></select></div>
+      <div class="field"><label>Tamaño de muestra n</label><input type="number" id="ex-n" min="1" value="30"></div>
+      <div class="field ex-estr" style="display:none"><label>Columna de estrato</label><select id="ex-estrato"></select></div>
+      <div class="field"><label>Variable a comparar (numérica)</label><select id="ex-var"></select></div>
+      <div class="field"><label>Semilla (opcional, reproducible)</label><input type="number" id="ex-seed" placeholder="aleatoria"></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="ex-run">Extraer muestra</button></div>
+    </div>
+  </div>
+
+  <!-- ===== TAMAÑO ===== -->
+  <div class="mode" id="m-tam" style="display:none">
+    <div class="grid grid-2">
+      <div>
+        <h3 style="margin:.2rem 0 .5rem">Para la media</h3>
+        <div class="field"><label>Error máximo E (± unidades)</label><input type="number" id="tm-E" step="any"></div>
+        <div class="field"><label>σ (o s estimada)</label><input type="number" id="tm-sigma" step="any"></div>
+        <div class="field"><label>Confianza (%)</label><input type="number" id="tm-conf" value="95" step="0.5"></div>
+        <div class="field"><label>Población N (opcional)</label><input type="number" id="tm-N" placeholder="∞"></div>
+        <div class="btn-row"><button class="btn" id="tm-run">Calcular n (media)</button></div>
+      </div>
+      <div>
+        <h3 style="margin:.2rem 0 .5rem">Para una proporción</h3>
+        <div class="field"><label>Error máximo E (ej 0.03)</label><input type="number" id="tp-E" step="any" placeholder="0.03"></div>
+        <div class="field"><label>p estimada (0.5 conservador)</label><input type="number" id="tp-p" value="0.5" step="any" min="0.01" max="0.99"></div>
+        <div class="field"><label>Confianza (%)</label><input type="number" id="tp-conf" value="95" step="0.5"></div>
+        <div class="field"><label>Población N (opcional)</label><input type="number" id="tp-N" placeholder="∞"></div>
+        <div class="btn-row"><button class="btn" id="tp-run">Calcular n (proporción)</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ASIGNACIÓN ===== -->
+  <div class="mode" id="m-asig" style="display:none">
+    <p class="card-sub">Reparte una muestra total entre estratos (proporcional y Neyman). S_h es opcional (solo Neyman).</p>
+    <div class="field" style="max-width:220px"><label>Muestra total n</label><input type="number" id="as-n" value="100"></div>
+    <div class="table-wrap" style="margin:.6rem 0"><table><thead><tr><th>Estrato</th><th>Tamaño N_h</th><th>Desv. S_h (opc.)</th><th></th></tr></thead><tbody id="as-rows"></tbody></table></div>
+    <div class="btn-row"><button class="btn btn-ghost" id="as-add">+ Agregar estrato</button><button class="btn" id="as-run">Calcular asignación</button></div>
+  </div>
+
+  <!-- ===== ESTIMACIÓN ===== -->
+  <div class="mode" id="m-estim" style="display:none">
+    <div class="grid grid-2">
+      <div>
+        <h3 style="margin:.2rem 0 .5rem">MAS — desde una muestra (datos)</h3>
+        <div class="field"><label>Columna de la muestra</label><select id="es-col"></select></div>
+        <div class="field"><label>Población N (para total y fpc)</label><input type="number" id="es-N" placeholder="∞"></div>
+        <div class="field"><label>Confianza (%)</label><input type="number" id="es-conf" value="95" step="0.5"></div>
+        <div class="btn-row"><button class="btn" id="es-run">Estimar (MAS)</button></div>
+      </div>
+      <div>
+        <h3 style="margin:.2rem 0 .5rem">Estratificado — desde resumen</h3>
+        <p class="small muted">Ingresa por estrato: N_h, n_h, media x̄_h y desviación s_h.</p>
+        <div class="table-wrap"><table><thead><tr><th>Estrato</th><th>N_h</th><th>n_h</th><th>x̄_h</th><th>s_h</th><th></th></tr></thead><tbody id="ee-rows"></tbody></table></div>
+        <div class="btn-row"><button class="btn btn-ghost" id="ee-add">+ Estrato</button><button class="btn" id="ee-run">Estimar (estratificado)</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<div id="result" class="card hidden">
+  <h2 id="res-title">Resultado</h2>
+  <div id="res-body"></div>
+  <div class="card" style="border-left:4px solid var(--purple);margin-top:1rem">
+    <h2 style="font-size:1rem">🧭 Interpretación</h2>
+    <ul id="res-interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+function msg(h,c='alert-info'){ $('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:''; }
+function stat(k,v,u=''){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div>${u?`<div class="u">${u}</div>`:''}</div>`;}
+function showInterp(l){ $('res-interp').innerHTML=(l||[]).map(t=>`<li>${t}</li>`).join(''); }
+function showResult(title,html,interp){ $('result').classList.remove('hidden'); $('res-title').textContent=title; $('res-body').innerHTML=html; showInterp(interp); $('result').scrollIntoView({behavior:'smooth'}); }
+let LASTSAMPLE=null;
+
+document.querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  document.querySelectorAll('.mode').forEach(m=>m.style.display='none'); $('m-'+b.dataset.m).style.display=''; $('result').classList.add('hidden'); msg('');
+}));
+
+function fillCols(){
+  if(PronoStat.has()){
+    PSU.fillColumnSelect($('ex-var'),PronoStat.numericColumns());
+    PSU.fillColumnSelect($('ex-estrato'),PronoStat.columnNames());
+    PSU.fillColumnSelect($('es-col'),PronoStat.numericColumns());
+  }
+}
+fillCols();
+$('ex-met').addEventListener('change',()=>{ document.querySelectorAll('.ex-estr').forEach(e=>e.style.display=$('ex-met').value==='estratificado'?'':'none'); });
+
+/* ---------- Extraer muestra ---------- */
+$('ex-run').addEventListener('click', async ()=>{
+  if(!PronoStat.has()){ PSU.requireDataset('needdata'); return; }
+  const d=PronoStat.get();
+  const payload={rows:d.rows,metodo:$('ex-met').value,n:parseInt($('ex-n').value)||30,
+    estrato_col:$('ex-met').value==='estratificado'?$('ex-estrato').value:null,
+    var:$('ex-var').value, seed:$('ex-seed').value?parseInt($('ex-seed').value):null};
+  msg('Extrayendo muestra… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/muestreo/api/extraer',payload); msg('');
+    LASTSAMPLE={columns:d.columns, rows:r.muestra, source:'muestra_'+r.metodo};
+    let html='';
+    const c=r.comparacion;
+    if(c){ html+=`<div class="stat-grid">${stat('N (población)',r.N)}${stat('n (muestra)',r.n)}${stat('Media población',c.poblacion.media)}${stat('Media muestra',c.muestra.media)}${stat('Error de muestreo',c.error_muestral)}${stat('Error relativo',c.error_relativo_pct,'%')}</div>`; }
+    if(Array.isArray(r.asignacion)){
+      html+='<div class="section-title">Asignación por estrato</div><div class="table-wrap"><table><thead><tr><th>Estrato</th><th>N_h</th><th>n_h</th><th>Peso W_h</th></tr></thead><tbody>'+
+        r.asignacion.map(a=>`<tr><td>${a.estrato}</td><td class="num">${a.N_h}</td><td class="num">${a.n_h}</td><td class="num">${a.peso}</td></tr>`).join('')+'</tbody></table></div>';
+    } else if(r.asignacion && r.asignacion.k){ html+=`<p class="small">Intervalo k=${r.asignacion.k}, arranque en posición ${r.asignacion.inicio}.</p>`; }
+    html+=`<div class="section-title">Unidades seleccionadas (posición en el archivo)</div><p class="small mono">${r.indices.join(', ')}</p>`;
+    html+='<div class="btn-row"><button class="btn btn-excel" id="ex-use">Usar esta muestra como dataset</button></div>';
+    showResult('Muestra extraída',html,r.interpretacion);
+    $('ex-use').addEventListener('click',()=>{ PronoStat.save(LASTSAMPLE); fillCols(); msg('Muestra guardada como dataset activo: los demás módulos ahora trabajarán con estas '+LASTSAMPLE.rows.length+' filas.','alert-ok'); });
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Tamaño de muestra ---------- */
+$('tm-run').addEventListener('click', async ()=>{
+  try{ const r=await PSU.postJSON('/muestreo/api/tam-media',{E:parseFloat($('tm-E').value),sigma:parseFloat($('tm-sigma').value),conf:parseFloat($('tm-conf').value)||95,N:$('tm-N').value?parseFloat($('tm-N').value):null});
+    showResult('Tamaño de muestra — media', `<div class="stat-grid">${stat('n requerido',r.n)}${r.n_finita?stat('n (población finita)',r.n_finita):''}${stat('n₀',r.n0)}${stat('z',r.z)}${stat('E',r.E)}${stat('σ',r.sigma)}</div>`, r.interpretacion);
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+$('tp-run').addEventListener('click', async ()=>{
+  try{ const r=await PSU.postJSON('/muestreo/api/tam-prop',{E:parseFloat($('tp-E').value),p:parseFloat($('tp-p').value)||0.5,conf:parseFloat($('tp-conf').value)||95,N:$('tp-N').value?parseFloat($('tp-N').value):null});
+    showResult('Tamaño de muestra — proporción', `<div class="stat-grid">${stat('n requerido',r.n)}${r.n_finita?stat('n (población finita)',r.n_finita):''}${stat('n₀',r.n0)}${stat('z',r.z)}${stat('E',r.E)}${stat('p',r.p)}</div>`, r.interpretacion);
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Asignación estratificada ---------- */
+function asRow(nombre='',N='',S=''){ return `<tr><td><input type="text" class="as-nom" value="${nombre}" style="width:110px"></td><td><input type="number" class="as-N" value="${N}" style="width:90px"></td><td><input type="number" class="as-S" value="${S}" step="any" style="width:90px"></td><td><button class="btn-ghost btn as-del" style="padding:.2rem .5rem">✕</button></td></tr>`; }
+function asInit(){ $('as-rows').innerHTML=asRow('Estrato A',1000,10)+asRow('Estrato B',600,25)+asRow('Estrato C',400,5); bindDel('as-rows','as-del'); }
+$('as-add').addEventListener('click',()=>{ $('as-rows').insertAdjacentHTML('beforeend',asRow('Estrato '+String.fromCharCode(65+$('as-rows').children.length))); bindDel('as-rows','as-del'); });
+function bindDel(tb,cls){ document.querySelectorAll('#'+tb+' .'+cls).forEach(b=>b.onclick=()=>b.closest('tr').remove()); }
+asInit();
+$('as-run').addEventListener('click', async ()=>{
+  const estratos=[...document.querySelectorAll('#as-rows tr')].map(tr=>{
+    const N=parseFloat(tr.querySelector('.as-N').value), S=tr.querySelector('.as-S').value;
+    return {nombre:tr.querySelector('.as-nom').value||'—', N_h:N, S_h:S===''?null:parseFloat(S)}; }).filter(e=>e.N_h>0);
+  if(!estratos.length){ msg('Ingresa al menos un estrato con N_h > 0.','alert-warn'); return; }
+  try{ const r=await PSU.postJSON('/muestreo/api/asignacion',{n:parseInt($('as-n').value)||100,estratos});
+    let html='<div class="table-wrap"><table><thead><tr><th>Estrato</th><th>N_h</th><th>W_h</th><th>S_h</th><th>n proporcional</th><th>n Neyman</th></tr></thead><tbody>'+
+      r.filas.map(f=>`<tr><td>${f.estrato}</td><td class="num">${f.N_h}</td><td class="num">${f.peso}</td><td class="num">${f.S_h??'—'}</td><td class="num">${f.n_proporcional}</td><td class="num">${f.n_neyman??'—'}</td></tr>`).join('')+'</tbody></table></div>';
+    showResult('Asignación estratificada',html,r.interpretacion);
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Estimación ---------- */
+$('es-run').addEventListener('click', async ()=>{
+  if(!PronoStat.has()){ msg('Carga o extrae una muestra primero.','alert-warn'); return; }
+  try{ const r=await PSU.postJSON('/muestreo/api/estimar-srs',{values:PronoStat.numericValues($('es-col').value),N:$('es-N').value?parseFloat($('es-N').value):null,conf:parseFloat($('es-conf').value)||95});
+    let html=`<div class="stat-grid">${stat('Media estimada',r.media)}${stat('n',r.n)}${stat('Desv. s',r.s)}${stat('Error estándar',r.error_std)}${stat('IC inf.',r.ic[0])}${stat('IC sup.',r.ic[1])}${r.total!=null?stat('Total estimado',r.total):''}</div>`;
+    showResult('Estimación MAS',html,r.interpretacion);
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+function eeRow(nombre='',N='',n='',m='',s=''){ return `<tr><td><input type="text" class="ee-nom" value="${nombre}" style="width:90px"></td><td><input type="number" class="ee-N" value="${N}" style="width:70px"></td><td><input type="number" class="ee-n" value="${n}" style="width:60px"></td><td><input type="number" class="ee-m" value="${m}" step="any" style="width:70px"></td><td><input type="number" class="ee-s" value="${s}" step="any" style="width:60px"></td><td><button class="btn-ghost btn ee-del" style="padding:.2rem .5rem">✕</button></td></tr>`; }
+function eeInit(){ $('ee-rows').innerHTML=eeRow('A',1000,60,50,10)+eeRow('B',600,40,80,25)+eeRow('C',400,20,30,5); document.querySelectorAll('#ee-rows .ee-del').forEach(b=>b.onclick=()=>b.closest('tr').remove()); }
+$('ee-add').addEventListener('click',()=>{ $('ee-rows').insertAdjacentHTML('beforeend',eeRow('Estrato '+String.fromCharCode(65+$('ee-rows').children.length))); document.querySelectorAll('#ee-rows .ee-del').forEach(b=>b.onclick=()=>b.closest('tr').remove()); });
+eeInit();
+$('ee-run').addEventListener('click', async ()=>{
+  const estratos=[...document.querySelectorAll('#ee-rows tr')].map(tr=>({nombre:tr.querySelector('.ee-nom').value,
+    N_h:parseFloat(tr.querySelector('.ee-N').value), n_h:parseFloat(tr.querySelector('.ee-n').value),
+    media_h:parseFloat(tr.querySelector('.ee-m').value), s_h:parseFloat(tr.querySelector('.ee-s').value)})).filter(e=>e.N_h>0&&e.n_h>0);
+  if(!estratos.length){ msg('Ingresa al menos un estrato completo.','alert-warn'); return; }
+  try{ const r=await PSU.postJSON('/muestreo/api/estimar-estr',{estratos,conf:parseFloat($('ee-conf')?.value)||95});
+    let html=`<div class="stat-grid">${stat('Media estratificada',r.media)}${stat('Error estándar',r.error_std)}${stat('IC inf.',r.ic[0])}${stat('IC sup.',r.ic[1])}${stat('Total estimado',r.total)}</div>`;
+    showResult('Estimación estratificada',html,r.interpretacion);
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+</script>
+{% endblock %}

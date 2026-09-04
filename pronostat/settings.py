@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Módulos de PronoStat (cada uno es una app independiente)
     'apps.home',
     'apps.datos',
+    'apps.muestreo',
     'apps.descriptiva',
     'apps.regresion',
     'apps.pronostico',

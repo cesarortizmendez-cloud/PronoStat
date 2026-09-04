@@ -296,7 +296,13 @@ td.num{font-family:var(--mono)}
     /* dataset = { source, sheet, columns:[{name,type}], rows:[{col:val,...}], meta } */
     save(dataset) {
       dataset.savedAt = new Date().toISOString();
-      sessionStorage.setItem(KEY, JSON.stringify(dataset));
+      try {
+        sessionStorage.setItem(KEY, JSON.stringify(dataset));
+      } catch (e) {
+        const nf = dataset.rows ? dataset.rows.length : '?';
+        throw new Error('El dataset (' + nf + ' filas) supera el almacenamiento del navegador. '
+          + 'Reduce columnas o filas (o filtra la serie que necesitas) y vuelve a intentar.');
+      }
       this.refreshBadge();
     },
     get() {

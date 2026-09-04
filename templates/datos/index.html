@@ -153,9 +153,14 @@ $('file').addEventListener('change', async (e) => {
     const buf = await f.arrayBuffer();
     WB = XLSX.read(buf, { type: 'array', cellDates: true });
     const sel = $('sheet'); sel.innerHTML = '';
-    WB.SheetNames.forEach(n => { const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    WB.SheetNames.forEach(n => {
+      const o=document.createElement('option'); o.value=n;
+      o.textContent = n.trim() + ' — ' + sheetRowCount(n) + ' filas';
+      sel.appendChild(o);
+    });
     $('sheet-field').style.display = '';
-    msg('load-msg', `Archivo <b>${f.name}</b> cargado. Hojas: ${WB.SheetNames.length}.`, 'alert-ok');
+    const resumen = WB.SheetNames.map(n=>`«${n.trim()}» (${sheetRowCount(n)} filas)`).join(', ');
+    msg('load-msg', `Archivo <b>${f.name}</b> cargado. ${WB.SheetNames.length} hoja(s): ${resumen}. Elige la hoja que quieres cargar.`, 'alert-ok');
     loadSheet();
   } catch (err) {
     msg('load-msg', 'No se pudo leer el archivo: ' + err.message, 'alert-err');
@@ -164,17 +169,32 @@ $('file').addEventListener('change', async (e) => {
 $('sheet').addEventListener('change', loadSheet);
 $('hasHeader').addEventListener('change', loadSheet);
 
+const _cellBlank = c => c===null || c===undefined || (typeof c==='string' && c.trim()==='');
+function sheetRowCount(name){
+  try {
+    let a = XLSX.utils.sheet_to_json(WB.Sheets[name], { header:1, raw:true, defval:null, blankrows:true });
+    while (a.length && (!a[a.length-1] || a[a.length-1].every(_cellBlank))) a.pop();
+    return $('hasHeader').checked ? Math.max(0, a.length - 1) : a.length;
+  } catch(_) { return '?'; }
+}
 function loadSheet(){
   if (!WB) return;
   const ws = WB.Sheets[$('sheet').value];
   const hasHeader = $('hasHeader').checked;
-  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false });
+  // Leemos TODAS las filas (blankrows:true) para no perder ninguna; luego solo
+  // recortamos las filas totalmente vacías del FINAL (rango fantasma de Excel).
+  let aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: true });
+  while (aoa.length && (!aoa[aoa.length-1] || aoa[aoa.length-1].every(_cellBlank))) aoa.pop();
   if (!aoa.length){ msg('load-msg','La hoja está vacía.','alert-warn'); return; }
   let header, dataRows;
   if (hasHeader){ header = aoa[0].map((h,i)=> (h===null||h==='')?`col_${i+1}`:String(h)); dataRows = aoa.slice(1); }
   else { header = aoa[0].map((_,i)=>`col_${i+1}`); dataRows = aoa; }
   RAW.columns = header;
   RAW.rows = dataRows.map(r => { const o={}; header.forEach((c,i)=>o[c]= r[i]===undefined?null:r[i]); return o; });
+  const blanks = RAW.rows.filter(r => header.every(c => _cellBlank(r[c]))).length;
+  msg('load-msg', `Se leyeron <b>${RAW.rows.length}</b> filas de la hoja «${$('sheet').value}»`
+      + (blanks ? ` (incluye ${blanks} fila(s) totalmente vacía(s); puedes quitarlas en el paso 3 con «Eliminar solo filas totalmente vacías»)` : '')
+      + '. Revisa y selecciona las columnas abajo.', 'alert-ok');
   analyze();
 }
 

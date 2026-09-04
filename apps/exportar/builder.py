@@ -76,6 +76,47 @@ def _footer(ws, row):
             value=f"PronoStat · generado {datetime.now():%Y-%m-%d %H:%M} · Dr. César Ortiz Méndez · USACH").font = SUB_FONT
 
 
+def build_informe(res, source="dataset"):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Informe"
+    r = _title(ws, "PronoStat — Informe automático del conjunto de datos",
+               f"Fuente: {source} · {res['n']} filas · {res['n_cols']} columnas ({res['n_num']} numéricas)")
+    ws.cell(row=r, column=1, value="Hallazgos").font = BOLD; r += 1
+    for ins in res["insights"]:
+        c = ws.cell(row=r, column=1, value="•  " + ins)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.row_dimensions[r].height = 28
+        r += 1
+    r += 1
+    ws.cell(row=r, column=1, value="Perfil por columna").font = BOLD; r += 1
+    r = _header_row(ws, ["Columna", "Tipo", "Faltantes %", "Media", "Mediana", "Desv.", "CV%", "Mín", "Máx", "Asimetría", "Atípicos"], r)
+    for c in res["columnas"]:
+        ws.cell(row=r, column=1, value=c["name"]).border = BORDER
+        ws.cell(row=r, column=2, value=c["type"]).border = BORDER
+        _num(ws, r, 3, c["faltantes_pct"])
+        s = c.get("stats")
+        if s:
+            for j, k in [(4, "media"), (5, "mediana"), (6, "sd"), (7, "cv"), (8, "min"), (9, "max"), (10, "asimetria")]:
+                _num(ws, r, j, s[k])
+            ws.cell(row=r, column=11, value=s["atipicos"]).border = BORDER
+        r += 1
+    ws.column_dimensions['A'].width = 60
+    _autosize(ws)
+    _footer(ws, r + 1)
+
+    if res.get("correlaciones"):
+        ws2 = wb.create_sheet("Correlaciones")
+        cs = res["correlaciones"]["cols"]; mm = res["correlaciones"]["matrix"]
+        _header_row(ws2, [""] + cs, 1)
+        for i, name in enumerate(cs):
+            ws2.cell(row=i + 2, column=1, value=name).font = BOLD
+            for j in range(len(cs)):
+                _num(ws2, i + 2, j + 2, mm[i][j])
+        _autosize(ws2)
+    return _save(wb)
+
+
 def build_econometria(res):
     wb = Workbook()
     ws = wb.active

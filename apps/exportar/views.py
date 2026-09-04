@@ -70,3 +70,14 @@ def econometria(request):
         return _xlsx(data, "econometria_mco.xlsx")
     except Exception as e:
         return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)
+
+
+@csrf_exempt
+@require_POST
+def informe(request):
+    try:
+        p = _body(request)
+        data = builder.build_informe(p['resumen'], p.get('source', 'dataset'))
+        return _xlsx(data, "pronostat_informe.xlsx")
+    except Exception as e:
+        return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)

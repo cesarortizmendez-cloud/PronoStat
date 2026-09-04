@@ -22,12 +22,25 @@ _MANIFEST = '''{
 }'''
 
 _SERVICE_WORKER = '''
-self.addEventListener("install", function(e){ self.skipWaiting(); });
-self.addEventListener("activate", function(e){ self.clients.claim(); });
+var CACHE = "pronostat-v2";
+self.addEventListener("install", function(e){
+  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(["/"]); }).catch(function(){}));
+  self.skipWaiting();
+});
+self.addEventListener("activate", function(e){
+  e.waitUntil(caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);})); }));
+  self.clients.claim();
+});
 self.addEventListener("fetch", function(e){
   var req = e.request;
   if (req.method !== "GET") return;
-  e.respondWith(fetch(req).catch(function(){ return caches.match(req); }));
+  var url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (req.mode === "navigate") {
+    e.respondWith(fetch(req).then(function(res){ var cp=res.clone(); caches.open(CACHE).then(function(c){c.put(req,cp);}); return res; }).catch(function(){ return caches.match(req).then(function(r){ return r || caches.match("/"); }); }));
+    return;
+  }
+  e.respondWith(caches.match(req).then(function(r){ return r || fetch(req).then(function(res){ var cp=res.clone(); caches.open(CACHE).then(function(c){c.put(req,cp);}); return res; }).catch(function(){ return r; }); }));
 });
 '''
 
@@ -59,6 +72,14 @@ urlpatterns = [
     path('econometria/', include('apps.econometria.urls')),
     path('series/', include('apps.series.urls')),
     path('arima/', include('apps.arima.urls')),
+    path('sarimax/', include('apps.sarimax.urls')),
+    path('intermitente/', include('apps.intermitente.urls')),
+    path('ensamble/', include('apps.ensamble.urls')),
+    path('multiple/', include('apps.multiple.urls')),
+    path('jerarquico/', include('apps.jerarquico.urls')),
+    path('simulacion/', include('apps.simulacion.urls')),
+    path('informes/', include('apps.informes.urls')),
+    path('pwa/', include('apps.pwa.urls')),
     path('exportar/', include('apps.exportar.urls')),
     # PWA
     path('manifest.json', manifest, name='manifest'),

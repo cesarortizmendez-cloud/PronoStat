@@ -46,6 +46,14 @@ INSTALLED_APPS = [
     'apps.econometria',
     'apps.series',
     'apps.arima',
+    'apps.intermitente',
+    'apps.simulacion',
+    'apps.pwa',
+    'apps.informes',
+    'apps.jerarquico',
+    'apps.multiple',
+    'apps.ensamble',
+    'apps.sarimax',
     'apps.exportar',
 ]
 

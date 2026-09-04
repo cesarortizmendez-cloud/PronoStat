@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}11 · Demanda intermitente{% endblock %}
+{% block topbar %}11 · Demanda intermitente — Croston, SBA y TSB{% endblock %}
+{% block nav_interm %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Demanda intermitente</div>
+  <h1>📦 Demanda intermitente <span class="pill pill-b">Versión 3</span></h1>
+  <p>Pronóstico de series con <b>muchos ceros</b> (repuestos, ítems de baja rotación) con los métodos
+     <b>Croston</b>, <b>SBA</b> y <b>TSB</b>, y clasificación del patrón de demanda.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 ¿Por qué métodos especiales?</h3>
+  <p>Los métodos clásicos (SES, Holt) fallan con demanda esporádica. <b>Croston</b> separa el <b>tamaño</b>
+     de la demanda (z) del <b>intervalo</b> entre demandas (p) y los suaviza por separado: pronóstico = z/p.
+     <b>SBA</b> corrige el sesgo de Croston (×(1−α/2)) y <b>TSB</b> actualiza la probabilidad de demanda cada
+     período (útil ante obsolescencia).</p>
+  <div class="formula">ADI = períodos / nº de demandas &nbsp;·&nbsp; CV² = (desv./media de tamaños)²</div>
+  <p><b>Clasificación:</b> ADI&lt;1,32 y CV²&lt;0,49 → suave; ADI≥1,32 y CV²&lt;0,49 → intermitente;
+     ADI&lt;1,32 y CV²≥0,49 → errática; ambos altos → grumosa (lumpy, la más difícil).</p>
+</div>
+
+<div class="card">
+  <h2><span class="step">1</span> Serie y método</h2>
+  <div id="needdata"></div>
+  <div class="grid grid-3" id="controls">
+    <div class="field"><label>Serie</label><select id="col"></select></div>
+    <div class="field"><label>Método</label><select id="met"><option value="croston">Croston</option><option value="sba" selected>SBA (recomendado)</option><option value="tsb">TSB</option></select></div>
+    <div class="field"><label>Horizonte h</label><input type="number" id="h" value="6" min="1"></div>
+    <div class="field"><label>α (suavizamiento)</label><input type="number" id="alpha" value="0.1" step="0.05" min="0.01" max="0.9"></div>
+    <div class="field beta"><label>β (tamaño, solo TSB)</label><input type="number" id="beta" value="0.1" step="0.05"></div>
+    <div class="field"><label class="check" style="margin-top:1.6rem"><input type="checkbox" id="opt" checked> Optimizar parámetros (RMSE)</label></div>
+    <div class="field" style="justify-content:flex-end"><button class="btn" id="run">Pronosticar</button></div>
+  </div>
+  <div class="btn-row"><button class="btn btn-ghost" id="cmp">Comparar Croston / SBA / TSB</button></div>
+  <div id="msg"></div>
+</div>
+
+<div id="result" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card"><h2 id="rtitle">Resultado</h2><div id="viz"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+function msg(h,c='alert-info'){ $('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:''; }
+function stat(k,v){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div></div>`;}
+let CH=null;
+function init(){ if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return;} PSU.fillColumnSelect($('col'),PronoStat.numericColumns()); }
+init();
+$('met').addEventListener('change',()=>{ document.querySelector('.beta').style.display=$('met').value==='tsb'?'':'none'; });
+document.querySelector('.beta').style.display='none';
+
+const CLASS_COLOR={'suave (regular)':'pill-g','intermitente':'pill-b','errática':'pill-a','grumosa (lumpy)':'pill-r'};
+
+$('run').addEventListener('click', async ()=>{
+  const payload={y:PronoStat.numericValues($('col').value),metodo:$('met').value,alpha:+$('alpha').value||0.1,beta:+$('beta').value||0.1,h:+$('h').value||6,optimizar:$('opt').checked};
+  msg('Calculando… <span class="spinner"></span>');
+  try{ const r=await PSU.postJSON('/intermitente/api/run',payload); msg(''); render(r); }
+  catch(err){ msg(err.message,'alert-err'); }
+});
+
+function classCard(c){ return `<div class="stat-grid"><div class="stat"><div class="k">Patrón</div><div class="v" style="font-size:1rem"><span class="pill ${CLASS_COLOR[c.clase]||'pill-b'}">${c.clase}</span></div></div>${stat('ADI',c.ADI)+stat('CV²',c.CV2)+stat('% ceros',c.pct_ceros)+stat('N.º demandas',c.n_dem)}</div>`; }
+
+function render(r){
+  $('result').classList.remove('hidden'); $('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
+  $('rtitle').textContent=`${r.nombre} · tasa pronosticada = ${PSU.fmt(r.rate)}/período`;
+  $('viz').innerHTML=classCard(r.clasificacion)+
+    `<div class="stat-grid" style="margin-top:.8rem">${stat('α',r.alpha)+(r.metodo==='tsb'?stat('β',r.beta):'')+stat('MAE',r.metrics.MAE)+stat('RMSE',r.metrics.RMSE)+stat('Sesgo',r.metrics.sesgo)}</div>
+     <div class="section-title" style="margin-top:1rem">Demanda observada y tasa estimada</div><div class="chart-box tall"><canvas id="ch"></canvas></div>`;
+  if(CH) CH.destroy();
+  const n=r.n; const labels=[]; for(let i=1;i<=n+r.h;i++) labels.push(i);
+  const obs=r.series.concat(Array(r.h).fill(null));
+  const rate=r.yhat.concat(r.forecast);
+  CH=new Chart($('ch'),{data:{labels,datasets:[
+    {type:'bar',label:'Demanda',data:obs,backgroundColor:'#5eead4',borderColor:'#0f766e',borderWidth:1},
+    {type:'line',label:'Tasa estimada / pronóstico',data:rate,borderColor:'#6d28d9',borderWidth:2,pointRadius:0,tension:.1,spanGaps:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'período'}},y:{beginAtZero:true}}}});
+  $('result').scrollIntoView({behavior:'smooth'});
+}
+
+$('cmp').addEventListener('click', async ()=>{
+  msg('Comparando… <span class="spinner"></span>');
+  try{ const r=await PSU.postJSON('/intermitente/api/comparar',{y:PronoStat.numericValues($('col').value),optimizar:true}); msg('');
+    $('result').classList.remove('hidden'); $('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
+    $('rtitle').textContent='Comparación de métodos';
+    $('viz').innerHTML=classCard(r.clasificacion)+'<div class="table-wrap" style="margin-top:1rem"><table><thead><tr><th>Método</th><th>α</th><th>β</th><th>Tasa</th><th>MAE</th><th>RMSE</th><th>Sesgo</th></tr></thead><tbody>'+
+      r.ranking.filter(f=>f.ok).map(f=>`<tr class="${f.metodo===r.best?'best-row':''}"><td><b>${f.nombre}</b></td><td class="num">${PSU.fmt(f.alpha)}</td><td class="num">${f.metodo==='tsb'?PSU.fmt(f.beta):'—'}</td><td class="num">${PSU.fmt(f.rate)}</td><td class="num">${PSU.fmt(f.MAE)}</td><td class="num">${PSU.fmt(f.RMSE)}</td><td class="num">${PSU.fmt(f.sesgo)}</td></tr>`).join('')+'</tbody></table></div>';
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+</script>
+{% endblock %}

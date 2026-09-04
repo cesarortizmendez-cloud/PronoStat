@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}15 · Simulación{% endblock %}
+{% block topbar %}15 · Simulación y escenarios (Monte Carlo){% endblock %}
+{% block nav_simulacion %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div class="crumbs">Inicio › Simulación</div>
+  <h1>🎲 Simulación y escenarios <span class="pill pill-b">Versión 3</span></h1>
+  <p>Genera miles de <b>trayectorias futuras</b> por Monte Carlo para ver el rango de resultados posibles,
+     construir escenarios (optimista/esperado/pesimista) y calcular la probabilidad de superar un umbral.</p></div>
+<div class="theory"><h3>📚 Monte Carlo</h3>
+  <p>A partir de un modelo base se obtiene el pronóstico puntual y la desviación de sus errores (σ). Se simulan
+     N trayectorias sumando <b>shocks</b> aleatorios (normales o por remuestreo de residuos) que se acumulan con el
+     horizonte. El <b>abanico</b> de percentiles resume la distribución de resultados.</p></div>
+<div class="card">
+  <div id="needdata"></div>
+  <div class="grid grid-3" id="controls">
+    <div class="field"><label>Serie</label><select id="col"></select></div>
+    <div class="field"><label>Modelo base</label><select id="modelo"><option value="ingenuo">Ingenuo</option><option value="ses">SES</option><option value="holt" selected>Holt</option><option value="holt_winters">Holt-Winters</option></select></div>
+    <div class="field"><label>Horizonte h</label><input type="number" id="h" value="12" min="1"></div>
+    <div class="field"><label>N.º simulaciones</label><input type="number" id="nsim" value="1000" min="100" max="5000" step="100"></div>
+    <div class="field"><label>Shocks</label><select id="dist"><option value="normal">Normales</option><option value="bootstrap">Bootstrap de residuos</option></select></div>
+    <div class="field"><label>Umbral (opcional)</label><input type="number" id="umbral" step="any" placeholder="ej. 2200"></div>
+    <div class="field"><label>Período m</label><input type="number" id="m" value="12"></div>
+    <div class="field" style="justify-content:flex-end"><button class="btn" id="run">Simular</button></div>
+  </div>
+  <div id="msg"></div>
+</div>
+<div id="result" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card"><h2 id="rtit">Escenarios</h2><div id="esc"></div>
+    <div class="section-title" style="margin-top:1rem">Abanico de trayectorias</div><div class="chart-box tall"><canvas id="ch"></canvas></div></div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const $=id=>document.getElementById(id);function msg(h,c='alert-info'){$('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:'';}
+function stat(k,v){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div></div>`;}
+let CH=null;
+if(!PSU.requireDataset('needdata')){$('controls').style.display='none';}else PSU.fillColumnSelect($('col'),PronoStat.numericColumns());
+$('run').addEventListener('click',async()=>{
+  msg('Simulando… <span class="spinner"></span>');
+  try{const r=await PSU.postJSON('/simulacion/api/run',{y:PronoStat.numericValues($('col').value),modelo:$('modelo').value,h:+$('h').value||12,m:+$('m').value||12,n_sim:+$('nsim').value||1000,dist:$('dist').value,umbral:$('umbral').value===''?null:+$('umbral').value});msg('');render(r);}
+  catch(err){msg(err.message,'alert-err');}
+});
+function render(r){
+  $('result').classList.remove('hidden');$('interp').innerHTML=r.interpretacion.map(t=>`<li>${t}</li>`).join('');
+  $('rtit').textContent=`${r.label} · ${r.n_sim} trayectorias · h=${r.h}`;
+  const e=r.escenarios;
+  $('esc').innerHTML=`<div class="stat-grid"><div class="stat"><div class="k">Pesimista (P10)</div><div class="v" style="color:#b91c1c">${PSU.fmt(e.pesimista_p10)}</div></div>
+    <div class="stat"><div class="k">Esperado</div><div class="v" style="color:#0f766e">${PSU.fmt(e.esperado_media)}</div></div>
+    <div class="stat"><div class="k">Optimista (P90)</div><div class="v" style="color:#15803d">${PSU.fmt(e.optimista_p90)}</div></div>${r.probabilidad?`<div class="stat"><div class="k">P(&gt; ${PSU.fmt(r.probabilidad.umbral)}) en t+${r.h}</div><div class="v">${r.probabilidad.p_supera_final.toFixed(1)}%</div></div><div class="stat"><div class="k">P(&gt; umbral algún período)</div><div class="v">${r.probabilidad.p_supera_algun.toFixed(1)}%</div></div>`:''}</div>`;
+  if(CH)CH.destroy();
+  const n=r.n,labels=[];for(let i=1;i<=n+r.h;i++)labels.push(i);const pad=Array(n).fill(null);
+  const band=(p)=>pad.concat(r.percentiles[p]);
+  const ds=[{label:'Serie',data:r.series.concat(Array(r.h).fill(null)),borderColor:'#0f766e',borderWidth:2,pointRadius:1},
+    {label:'P95',data:band(95),borderColor:'transparent',backgroundColor:'rgba(109,40,217,.10)',fill:'+1',pointRadius:0},
+    {label:'P75',data:band(75),borderColor:'transparent',backgroundColor:'rgba(109,40,217,.18)',fill:'+1',pointRadius:0},
+    {label:'P25',data:band(25),borderColor:'transparent',backgroundColor:'rgba(109,40,217,.18)',fill:'+1',pointRadius:0},
+    {label:'P5',data:band(5),borderColor:'transparent',pointRadius:0},
+    {label:'Mediana (P50)',data:band(50),borderColor:'#6d28d9',borderWidth:2.5,pointRadius:0}];
+  // algunas trayectorias muestra
+  r.muestras.slice(0,12).forEach(m=>ds.push({label:'_p',data:pad.concat(m),borderColor:'rgba(15,118,110,.15)',borderWidth:1,pointRadius:0}));
+  CH=new Chart($('ch'),{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,spanGaps:true,plugins:{legend:{position:'top',labels:{filter:it=>!['P95','P75','P25','P5','_p'].includes(it.text)}}},scales:{x:{title:{display:true,text:'t'}}}}});
+  $('result').scrollIntoView({behavior:'smooth'});
+}
+</script>{% endblock %}

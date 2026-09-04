@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}16 · Informes{% endblock %}
+{% block topbar %}16 · Informes automáticos{% endblock %}
+{% block nav_informes %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div class="crumbs">Inicio › Informes</div>
+  <h1>📄 Informes automáticos <span class="pill pill-b">Versión 3</span></h1>
+  <p>Genera un <b>resumen integral</b> del conjunto de datos cargado (perfil por columna, correlaciones y
+     hallazgos) y descárgalo como <b>informe Excel</b> con un clic.</p></div>
+<div class="card">
+  <div id="needdata"></div>
+  <div class="btn-row" id="controls">
+    <button class="btn" id="gen">Generar informe</button>
+    <button class="btn btn-excel" id="xls" disabled>⬇ Descargar informe Excel</button>
+  </div>
+  <div id="msg"></div>
+</div>
+<div id="result" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Hallazgos</h2><ul id="ins" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card"><h2>Perfil por columna</h2><div class="table-wrap"><table id="perf"></table></div></div>
+  <div class="card" id="corr-card"><h2>Matriz de correlaciones</h2><div class="table-wrap"><table id="corr"></table></div></div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const $=id=>document.getElementById(id);function msg(h,c='alert-info'){$('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:'';}
+let RES=null;
+if(!PSU.requireDataset('needdata')){$('controls').style.display='none';}
+$('gen').addEventListener('click',async()=>{
+  const d=PronoStat.get();
+  msg('Generando… <span class="spinner"></span>');
+  try{RES=await PSU.postJSON('/informes/api/resumen',{columns:d.columns,rows:d.rows});msg('');$('xls').disabled=false;render(RES);}
+  catch(err){msg(err.message,'alert-err');}
+});
+function heat(v){ if(v==null||Number.isNaN(v))return ''; const a=Math.abs(v); const c=v>0?`rgba(15,118,110,${a*0.7})`:`rgba(185,28,28,${a*0.7})`; return `background:${c};color:${a>0.6?'#fff':'#0f172a'}`; }
+function render(r){
+  $('result').classList.remove('hidden');
+  $('ins').innerHTML=r.insights.map(t=>`<li>${t}</li>`).join('');
+  let html='<thead><tr><th>Columna</th><th>Tipo</th><th>Faltantes</th><th>Media</th><th>Mediana</th><th>Desv.</th><th>CV%</th><th>Mín</th><th>Máx</th><th>Asim.</th><th>Atíp.</th></tr></thead><tbody>';
+  r.columnas.forEach(c=>{const s=c.stats;
+    html+=`<tr><td><b>${c.name}</b></td><td>${c.type}</td><td class="num">${c.faltantes_pct}%</td>`+
+      (s?`<td class="num">${PSU.fmt(s.media)}</td><td class="num">${PSU.fmt(s.mediana)}</td><td class="num">${PSU.fmt(s.sd)}</td><td class="num">${PSU.fmt(s.cv)}</td><td class="num">${PSU.fmt(s.min)}</td><td class="num">${PSU.fmt(s.max)}</td><td class="num">${PSU.fmt(s.asimetria)}</td><td class="num">${s.atipicos}</td>`:'<td colspan="8" class="small muted">— no numérica —</td>')+'</tr>';});
+  $('perf').innerHTML=html+'</tbody>';
+  if(r.correlaciones){ $('corr-card').style.display='';
+    const cs=r.correlaciones.cols,mm=r.correlaciones.matrix;
+    let ch='<thead><tr><th></th>'+cs.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+    cs.forEach((c,i)=>{ch+=`<tr><td><b>${c}</b></td>`+mm[i].map(v=>`<td class="num" style="${heat(v)}">${PSU.fmt(v,2)}</td>`).join('')+'</tr>';});
+    $('corr').innerHTML=ch+'</tbody>';
+  } else $('corr-card').style.display='none';
+  $('result').scrollIntoView({behavior:'smooth'});
+}
+$('xls').addEventListener('click',async()=>{
+  if(!RES)return; const d=PronoStat.get();
+  try{await PSU.downloadPost('/exportar/informe',{resumen:RES,source:d.source||'dataset'},'pronostat_informe.xlsx');}
+  catch(err){alert('No se pudo exportar: '+err.message);}
+});
+</script>{% endblock %}

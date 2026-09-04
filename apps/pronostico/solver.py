@@ -1,8 +1,11 @@
 """
 Pronósticos (series de tiempo) — lógica pura, solo numpy + scipy.
-Métodos: ingenuo, ingenuo estacional, promedio móvil, suavizamiento exponencial
-simple (SES), Holt (tendencia, opc. amortiguada) y Holt-Winters (tendencia +
-estacionalidad aditiva/multiplicativa).
+
+Modelos de tipo ingenuo (líneas base): ingenuo simple, ingenuo estacional,
+ingenuo con deriva, media simple, caminata aleatoria (y promedio móvil).
+Modelos de suavización (marco ETS): SES, Holt (tendencia lineal), Holt
+amortiguado, y Holt-Winters aditivo / multiplicativo, cada uno con y sin
+tendencia amortiguada (7 variantes de suavización en total).
 
 Los métodos de suavizamiento se implementan a mano (recursiones ETS clásicas) y
 sus parámetros se optimizan con scipy.optimize minimizando la suma de errores al
@@ -150,6 +153,35 @@ def m_ma(train, h, window=3, **kw):
     return {"fitted": fitted, "forecast": np.repeat(np.mean(t[-k:]), h), "params": {"ventana": k}}
 
 
+def m_drift(train, h, **kw):
+    """Ingenuo con deriva (random walk with drift): último valor + cambio medio por paso."""
+    t = _safe(train)
+    if t.size < 2:
+        raise ValueError("El método con deriva requiere al menos 2 observaciones.")
+    drift = float((t[-1] - t[0]) / (t.size - 1))
+    fitted = np.concatenate([[np.nan], t[:-1] + drift])  # ŷ_t = y_{t-1} + deriva
+    fc = t[-1] + drift * np.arange(1, h + 1)
+    return {"fitted": fitted, "forecast": fc,
+            "params": {"deriva": drift, "último_valor": float(t[-1])}}
+
+
+def m_mean(train, h, **kw):
+    """Media simple: el pronóstico de todo el futuro es el promedio de la historia."""
+    t = _safe(train)
+    mu = float(np.mean(t))
+    fitted = np.concatenate([[np.nan], np.array([float(np.mean(t[:i])) for i in range(1, t.size)])])
+    return {"fitted": fitted, "forecast": np.repeat(mu, h), "params": {"media": mu}}
+
+
+def m_rw(train, h, **kw):
+    """Caminata aleatoria (random walk): Yₜ = Yₜ₋₁ + εₜ. Pronóstico puntual = último valor
+    (coincide con el ingenuo); es su formulación estocástica, con intervalos que crecen √h."""
+    t = _safe(train)
+    fitted = np.concatenate([[np.nan], t[:-1]])
+    return {"fitted": fitted, "forecast": np.repeat(t[-1], h),
+            "params": {"último_valor": float(t[-1]), "sigma_innov": float(np.std(np.diff(t), ddof=1)) if t.size > 2 else 0.0}}
+
+
 def m_ses(train, h, alpha=None, **kw):
     t = _safe(train)
     if alpha is None:
@@ -216,15 +248,66 @@ def m_hw(train, h, m=12, seasonal="add", trend="add", damped=False, **kw):
     return {"fitted": fitted, "forecast": fc, "params": p}
 
 
+# --- Variantes explícitas de suavización (mismas recursiones ETS, config fija) --- #
+def m_holt_linear(train, h, **kw):
+    kw.pop("damped", None)
+    return m_holt(train, h, damped=False, **kw)
+
+
+def m_holt_damped(train, h, **kw):
+    kw.pop("damped", None)
+    return m_holt(train, h, damped=True, **kw)
+
+
+def _hw_variant(train, h, seasonal, damped, **kw):
+    kw.pop("seasonal", None); kw.pop("damped", None); kw.pop("trend", None)
+    return m_hw(train, h, seasonal=seasonal, damped=damped, **kw)
+
+
+def m_hw_add(train, h, **kw):       return _hw_variant(train, h, "add", False, **kw)
+def m_hw_mul(train, h, **kw):       return _hw_variant(train, h, "mul", False, **kw)
+def m_hw_damp_add(train, h, **kw):  return _hw_variant(train, h, "add", True, **kw)
+def m_hw_damp_mul(train, h, **kw):  return _hw_variant(train, h, "mul", True, **kw)
+
+
 _MODELS = {
-    "ingenuo": m_naive, "ingenuo_estacional": m_snaive, "promedio_movil": m_ma,
-    "ses": m_ses, "holt": m_holt, "holt_winters": m_hw,
+    # --- Modelos de tipo ingenuo (líneas base / benchmarks) ---
+    "ingenuo": m_naive,
+    "ingenuo_estacional": m_snaive,
+    "deriva": m_drift,
+    "media": m_mean,
+    "random_walk": m_rw,
+    "promedio_movil": m_ma,
+    # --- Suavización exponencial (marco ETS) ---
+    "ses": m_ses,
+    "holt": m_holt_linear,
+    "holt_amort": m_holt_damped,
+    "hw_aditivo": m_hw_add,
+    "hw_multiplicativo": m_hw_mul,
+    "hw_amort_aditivo": m_hw_damp_add,
+    "hw_amort_multiplicativo": m_hw_damp_mul,
+    # --- Alias de compatibilidad (ensamble/jerárquico/múltiple/simulación) ---
+    "holt_winters": m_hw_add,
 }
 _LABELS = {
-    "ingenuo": "Ingenuo", "ingenuo_estacional": "Ingenuo estacional",
-    "promedio_movil": "Promedio móvil", "ses": "Suavizamiento exp. simple",
-    "holt": "Holt (tendencia)", "holt_winters": "Holt-Winters",
+    "ingenuo": "Ingenuo (Naïve)",
+    "ingenuo_estacional": "Ingenuo estacional (Seasonal naïve)",
+    "deriva": "Ingenuo con deriva (Drift)",
+    "media": "Media simple (Mean)",
+    "random_walk": "Caminata aleatoria (Random walk)",
+    "promedio_movil": "Promedio móvil",
+    "ses": "Suavizamiento exp. simple (SES)",
+    "holt": "Holt (tendencia lineal)",
+    "holt_amort": "Holt con tendencia amortiguada",
+    "hw_aditivo": "Holt-Winters aditivo",
+    "hw_multiplicativo": "Holt-Winters multiplicativo",
+    "hw_amort_aditivo": "Holt-Winters amortiguado aditivo",
+    "hw_amort_multiplicativo": "Holt-Winters amortiguado multiplicativo",
+    "holt_winters": "Holt-Winters",
 }
+_SEASONAL = {"ingenuo_estacional", "holt_winters", "hw_aditivo", "hw_multiplicativo",
+             "hw_amort_aditivo", "hw_amort_multiplicativo"}
+_NOGROW = {"media", "promedio_movil"}          # intervalos de ancho constante
 
 
 # --------------------------------------------------------------------------- #
@@ -252,7 +335,7 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     h, holdout = int(h), int(holdout)
     if model not in _MODELS:
         raise ValueError(f"Modelo desconocido: {model}")
-    seasonal_model = model in ("holt_winters", "ingenuo_estacional")
+    seasonal_model = model in _SEASONAL
 
     test_metrics = test_pred = test_actual = None
     if holdout > 0:
@@ -272,16 +355,24 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     mask = ~np.isnan(fitted)
     scale_full = _mase_scale(y, m if seasonal_model else 1)
     insample = metrics(y[mask], fitted[mask], scale_full)
-    grow = model in ("ingenuo", "ses", "holt", "holt_winters")
+    grow = model not in _NOGROW
     pi = _intervals(forecast, sigma, conf, grow)
 
     # ------------------- Interpretación automática -------------------
     _desc = {
-        "ingenuo": "El pronóstico repite el último valor observado; sirve como línea base de comparación.",
-        "ingenuo_estacional": "El pronóstico repite el valor del mismo periodo del ciclo anterior (m atrás).",
+        "ingenuo": "El pronóstico repite el último valor observado (ŷ = yₜ); sirve como línea base de comparación.",
+        "ingenuo_estacional": "El pronóstico repite el valor del mismo periodo del ciclo anterior (m atrás): p. ej. este diciembre = diciembre pasado.",
+        "deriva": "Ingenuo con deriva: parte del último valor y le suma el cambio promedio observado en la historia, por lo que la proyección sube o baja de forma constante.",
+        "media": "Media simple: todos los valores futuros se pronostican como el promedio de toda la serie histórica; ignora tendencia y estacionalidad.",
+        "random_walk": "Caminata aleatoria: modelo estocástico Yₜ = Yₜ₋₁ + εₜ. Su pronóstico puntual coincide con el ingenuo (el último valor), y es la base teórica de por qué la incertidumbre crece con √h.",
         "promedio_movil": "El pronóstico es el promedio de las últimas k observaciones: suaviza el ruido pero no capta tendencia ni estacionalidad.",
         "ses": "Suavizamiento exponencial simple: promedio ponderado que da más peso a lo reciente. Apto para series sin tendencia ni estacionalidad.",
-        "holt": "Holt agrega una componente de tendencia, por lo que proyecta un crecimiento o decrecimiento sostenido.",
+        "holt": "Holt (tendencia lineal): extiende el SES con una componente de tendencia, proyectando un crecimiento o decrecimiento sostenido.",
+        "holt_amort": "Holt amortiguado: como Holt, pero la tendencia se aplana (φ<1) hacia el futuro, evitando proyecciones exageradas a largo plazo.",
+        "hw_aditivo": "Holt-Winters aditivo: modela nivel, tendencia y una estacionalidad de amplitud constante (se suma al nivel).",
+        "hw_multiplicativo": "Holt-Winters multiplicativo: la estacionalidad varía en proporción al nivel de la serie (se multiplica); útil cuando las oscilaciones crecen con el nivel.",
+        "hw_amort_aditivo": "Holt-Winters amortiguado aditivo: estacionalidad aditiva con tendencia que se frena con el tiempo.",
+        "hw_amort_multiplicativo": "Holt-Winters amortiguado multiplicativo: estacionalidad multiplicativa con tendencia amortiguada.",
         "holt_winters": "Holt-Winters modela nivel, tendencia y estacionalidad: es adecuado cuando la serie repite un patrón cada m periodos.",
     }
     interp = [_desc.get(model, "")]
@@ -323,7 +414,9 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
 
 def compare(y, models=None, h=6, m=12, holdout=6, conf=95, params_map=None):
     y_clean = [v for v in y if v is not None]
-    models = models or ["ingenuo", "promedio_movil", "ses", "holt", "holt_winters"]
+    models = models or ["ingenuo", "ingenuo_estacional", "deriva", "media", "random_walk",
+                        "promedio_movil", "ses", "holt", "holt_amort",
+                        "hw_aditivo", "hw_multiplicativo", "hw_amort_aditivo", "hw_amort_multiplicativo"]
     params_map = params_map or {}
     rows = []
     for mod in models:

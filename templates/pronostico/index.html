@@ -13,9 +13,14 @@
 
 <div class="theory">
   <h3>Métodos y métricas</h3>
-  <p><b>Ingenuo:</b> el pronóstico es el último valor. <b>Promedio móvil:</b> media de las últimas k
-     observaciones. <b>SES:</b> promedio ponderado con pesos que decaen (α). <b>Holt:</b> agrega
-     tendencia (β). <b>Holt-Winters:</b> agrega estacionalidad (γ), aditiva o multiplicativa.</p>
+  <p><b>Modelos ingenuos (líneas base):</b> <i>Ingenuo</i> (repite el último valor),
+     <i>Ingenuo estacional</i> (repite el mismo periodo del ciclo anterior), <i>Deriva</i>
+     (último valor + cambio promedio), <i>Media simple</i> (promedio de toda la serie),
+     <i>Caminata aleatoria</i> (Yₜ = Yₜ₋₁ + εₜ) y <i>Promedio móvil</i>.</p>
+  <p><b>Suavización exponencial (ETS):</b> promedios ponderados que dan más peso a lo reciente.
+     <i>SES</i> (nivel, α), <i>Holt</i> (+ tendencia β) y <i>Holt amortiguado</i> (tendencia que se frena, φ);
+     <i>Holt-Winters</i> (+ estacionalidad γ) en cuatro variantes: aditiva o multiplicativa, cada una con
+     o sin tendencia amortiguada.</p>
   <div class="formula">MAE = media|eₜ| · RMSE = √(media eₜ²) · MAPE = media|eₜ/yₜ|·100 · SMAPE = media(2|eₜ|/(|yₜ|+|ŷₜ|))·100 · MASE = MAE / MAE_ingenuo</div>
   <p>Para una evaluación honesta reserva un <b>conjunto de prueba</b> (holdout): el modelo se ajusta
      sin esos datos y se mide qué tan bien los predice.</p>
@@ -25,7 +30,7 @@
   <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Proyecta a futuro una serie de tiempo con métodos clásicos y te dice cuál pronostica mejor.</p>
-  <p><b>¿Cómo se usa?</b> Elige la serie y el modelo (ingenuo, promedio móvil, SES, Holt o Holt-Winters), fija el horizonte y, para una evaluación honesta, un conjunto de prueba (holdout). Pulsa «Pronosticar» o «Comparar modelos».</p>
+  <p><b>¿Cómo se usa?</b> Elige la serie y el modelo del menú, agrupado en <b>modelos ingenuos</b> (líneas base) y <b>suavización exponencial ETS</b>. Para los modelos estacionales (ingenuo estacional y las variantes Holt-Winters) indica el <b>periodo m</b> (12 = mensual, 4 = trimestral). Fija el horizonte y, para una evaluación honesta, un conjunto de prueba (holdout). Pulsa «Pronosticar» para un modelo o «Comparar modelos» para evaluarlos todos y ver cuál gana.</p>
   <p><b>¿Cómo se interpretan los resultados?</b> Las métricas miden el error: el MAPE está en % (menor es mejor); el MASE &lt; 1 significa que el modelo supera al método ingenuo. La banda morada es el intervalo de predicción (se ensancha con el horizonte). En la comparación, gana el modelo de menor RMSE.</p>
   <p><b>Símbolos:</b> yₜ observado · ŷₜ pronóstico · eₜ error · h horizonte · m período estacional · α, β, γ parámetros de suavizamiento (nivel, tendencia, estacionalidad).</p>
   </div>
@@ -38,22 +43,30 @@
     <div class="field"><label for="col">Serie (variable numérica)</label><select id="col"></select></div>
     <div class="field"><label for="model">Modelo</label>
       <select id="model">
-        <option value="ingenuo">Ingenuo</option>
-        <option value="ingenuo_estacional">Ingenuo estacional</option>
-        <option value="promedio_movil">Promedio móvil</option>
-        <option value="ses" selected>Suavizamiento exp. simple (SES)</option>
-        <option value="holt">Holt (tendencia)</option>
-        <option value="holt_winters">Holt-Winters</option>
+        <optgroup label="Modelos ingenuos (líneas base)">
+          <option value="ingenuo">Ingenuo (Naïve)</option>
+          <option value="ingenuo_estacional">Ingenuo estacional</option>
+          <option value="deriva">Ingenuo con deriva</option>
+          <option value="media">Media simple</option>
+          <option value="random_walk">Caminata aleatoria</option>
+          <option value="promedio_movil">Promedio móvil</option>
+        </optgroup>
+        <optgroup label="Suavización exponencial (ETS)">
+          <option value="ses" selected>Suavizamiento exp. simple (SES)</option>
+          <option value="holt">Holt (tendencia lineal)</option>
+          <option value="holt_amort">Holt amortiguado</option>
+          <option value="hw_aditivo">Holt-Winters aditivo</option>
+          <option value="hw_multiplicativo">Holt-Winters multiplicativo</option>
+          <option value="hw_amort_aditivo">Holt-Winters amort. aditivo</option>
+          <option value="hw_amort_multiplicativo">Holt-Winters amort. multiplicativo</option>
+        </optgroup>
       </select>
     </div>
     <div class="field"><label for="h">Horizonte (pasos a pronosticar)</label><input type="number" id="h" min="1" max="60" value="6"></div>
 
-    <div class="field p-ma p-hw p-sn" style="display:none"><label for="m">Periodo estacional m</label>
+    <div class="field p-m" style="display:none"><label for="m">Periodo estacional m</label>
       <input type="number" id="m" min="2" max="52" value="12"><span class="hint">12 = mensual, 4 = trimestral, 7 = diario/semanal</span></div>
     <div class="field p-ma2" style="display:none"><label for="window">Ventana promedio móvil (k)</label><input type="number" id="window" min="1" value="3"></div>
-    <div class="field p-hw2" style="display:none"><label for="seasonal">Estacionalidad</label>
-      <select id="seasonal"><option value="add">Aditiva</option><option value="mul">Multiplicativa</option></select></div>
-    <div class="field p-holt p-hw3" style="display:none"><label class="check" style="margin-top:1.6rem"><input type="checkbox" id="damped"> Tendencia amortiguada (φ)</label></div>
 
     <div class="field"><label for="holdout">Conjunto de prueba (holdout)</label><input type="number" id="holdout" min="0" max="40" value="6"><span class="hint">0 = usar toda la serie para ajustar</span></div>
     <div class="field"><label for="conf">Confianza del intervalo</label>
@@ -110,15 +123,12 @@
 const $=id=>document.getElementById(id);
 let fcChart,LAST=null,CTX={};
 
+const SEASONAL_MODELS=['ingenuo_estacional','hw_aditivo','hw_multiplicativo','hw_amort_aditivo','hw_amort_multiplicativo'];
 function toggleParams(){
   const mdl=$('model').value;
   const show=(sel,on)=>document.querySelectorAll(sel).forEach(e=>e.style.display=on?'':'none');
-  show('.p-ma',false); show('.p-ma2',false); show('.p-hw',false); show('.p-hw2',false);
-  show('.p-hw3',false); show('.p-holt',false); show('.p-sn',false);
-  if(mdl==='promedio_movil') show('.p-ma2',true);
-  if(mdl==='ingenuo_estacional') show('.p-sn',true);
-  if(mdl==='holt') show('.p-holt',true);
-  if(mdl==='holt_winters'){ show('.p-hw',true); show('.p-hw2',true); show('.p-hw3',true); }
+  show('.p-m', SEASONAL_MODELS.includes(mdl));
+  show('.p-ma2', mdl==='promedio_movil');
 }
 $('model').addEventListener('change',toggleParams);
 
@@ -134,9 +144,7 @@ initCols();
 function collectParams(){
   const mdl=$('model').value, p={};
   if(mdl==='promedio_movil') p.window=parseInt($('window').value)||3;
-  if(mdl==='holt') p.damped=$('damped').checked;
-  if(mdl==='holt_winters'){ p.seasonal=$('seasonal').value; p.trend='add'; p.damped=$('damped').checked; }
-  return p;
+  return p;   // estacionalidad y amortiguamiento van codificados en la clave del modelo
 }
 
 $('btnRun').addEventListener('click', run);

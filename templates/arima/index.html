@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}9 · ARIMA{% endblock %}
+{% block topbar %}9 · ARIMA / SARIMA — Modelado de series de tiempo{% endblock %}
+{% block nav_arima %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › ARIMA</div>
+  <h1>🧮 ARIMA / SARIMA <span class="pill pill-a">Versión 2</span></h1>
+  <p>Modelos <b>AR, MA, ARMA, ARIMA</b> y <b>SARIMA</b> por mínimos cuadrados condicionales, con
+     <b>diagnóstico de residuos</b>, <b>selección automática</b> y <b>validación con origen móvil</b>.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Metodología Box-Jenkins</h3>
+  <div class="formula">SARIMA(p,d,q)(P,D,Q)ₘ:  Φ(Bᵐ)φ(B)(1−B)ᵈ(1−Bᵐ)ᴰ yₜ = c + Θ(Bᵐ)θ(B) eₜ</div>
+  <p><b>p, q</b>: órdenes AR y MA · <b>d</b>: diferenciación regular · <b>P, D, Q, m</b>: componentes
+     estacionales. Pasos: (1) identificar con ACF/PACF y pruebas de estacionariedad (módulo 8),
+     (2) estimar, (3) diagnosticar residuos (deben ser ruido blanco), (4) pronosticar.</p>
+  <p class="small muted">Nota: la estimación es por CSS (mínimos cuadrados condicionales), muy cercana a la de
+     software especializado; ideal para aprender la mecánica del método.</p>
+</div>
+
+<div class="card">
+  <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
+    <button class="btn btn-ghost mtab active" data-m="est">Estimar</button>
+    <button class="btn btn-ghost mtab" data-m="auto">Selección automática</button>
+    <button class="btn btn-ghost mtab" data-m="cv">Validación (origen móvil)</button>
+  </div>
+  <div id="needdata"></div>
+
+  <div class="mode" id="m-est">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="col"></select></div>
+      <div class="field"><label>Horizonte h</label><input type="number" id="h" value="12" min="1" max="60"></div>
+      <div class="field"><label>Prueba (holdout)</label><input type="number" id="holdout" value="0" min="0"></div>
+    </div>
+    <div class="section-title">No estacional (p, d, q)</div>
+    <div class="grid grid-3">
+      <div class="field"><label>p (AR)</label><input type="number" id="p" value="1" min="0" max="5"></div>
+      <div class="field"><label>d (dif.)</label><input type="number" id="d" value="0" min="0" max="2"></div>
+      <div class="field"><label>q (MA)</label><input type="number" id="q" value="0" min="0" max="5"></div>
+    </div>
+    <div class="section-title">Estacional (P, D, Q, m)</div>
+    <div class="grid grid-3">
+      <div class="field"><label>P</label><input type="number" id="P" value="0" min="0" max="2"></div>
+      <div class="field"><label>D</label><input type="number" id="D" value="0" min="0" max="1"></div>
+      <div class="field"><label>Q</label><input type="number" id="Q" value="0" min="0" max="2"></div>
+      <div class="field"><label>m (período)</label><input type="number" id="m" value="12" min="1"></div>
+      <div class="field"><label>Confianza IC (%)</label><input type="number" id="conf" value="95" step="1"></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="est-run">Estimar</button></div>
+    </div>
+  </div>
+
+  <div class="mode" id="m-auto" style="display:none">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="a-col"></select></div>
+      <div class="field"><label>d (vacío = automático por ADF)</label><input type="number" id="a-d" min="0" max="2" placeholder="auto"></div>
+      <div class="field"><label>D estacional</label><input type="number" id="a-D" value="0" min="0" max="1"></div>
+      <div class="field"><label>m</label><input type="number" id="a-m" value="12" min="1"></div>
+      <div class="field"><label>Máx p, q</label><input type="number" id="a-pq" value="2" min="0" max="3"></div>
+      <div class="field"><label class="check" style="margin-top:1.6rem"><input type="checkbox" id="a-seas" checked> Buscar estacional (P,Q≤1)</label></div>
+    </div>
+    <div class="btn-row"><button class="btn" id="auto-run">Buscar mejor modelo</button></div>
+  </div>
+
+  <div class="mode" id="m-cv" style="display:none">
+    <div class="grid grid-3">
+      <div class="field"><label>Serie</label><select id="c-col"></select></div>
+      <div class="field"><label>Horizonte h</label><input type="number" id="c-h" value="1" min="1"></div>
+      <div class="field"><label>Ventana</label><select id="c-vent"><option value="expansiva">Expansiva</option><option value="movil">Móvil</option></select></div>
+      <div class="field"><label>p,d,q</label><div style="display:flex;gap:.3rem"><input type="number" id="c-p" value="1" style="width:50px"><input type="number" id="c-d" value="1" style="width:50px"><input type="number" id="c-q" value="1" style="width:50px"></div></div>
+      <div class="field"><label>P,D,Q,m</label><div style="display:flex;gap:.3rem"><input type="number" id="c-P" value="0" style="width:44px"><input type="number" id="c-D" value="0" style="width:44px"><input type="number" id="c-Q" value="0" style="width:44px"><input type="number" id="c-m" value="12" style="width:54px"></div></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="cv-run">Validar</button></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<div id="result" class="hidden">
+  <div class="card" style="border-left:4px solid var(--purple)"><h2>🧭 Interpretación</h2><ul id="interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul></div>
+  <div class="card" id="viz-card"><h2 id="viz-title">Resultado</h2><div id="viz"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+function msg(h,c='alert-info'){ $('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:''; }
+function interp(l){ $('interp').innerHTML=(l||[]).map(t=>`<li>${t}</li>`).join(''); }
+function stat(k,v){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div></div>`;}
+function pv(p){return (p==null||Number.isNaN(p))?'—':(p<1e-4?p.toExponential(2):PSU.fmt(p));}
+let CH=[]; function clearCh(){CH.forEach(c=>c.destroy());CH=[];}
+
+document.querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  document.querySelectorAll('.mode').forEach(m=>m.style.display='none'); $('m-'+b.dataset.m).style.display=''; $('result').classList.add('hidden'); msg('');
+}));
+function fill(){ if(PronoStat.has()){ const n=PronoStat.numericColumns(); ['col','a-col','c-col'].forEach(id=>PSU.fillColumnSelect($(id),n)); } }
+if(!PSU.requireDataset('needdata')){ document.querySelectorAll('.mode').forEach(m=>m.style.display='none'); } else fill();
+function serie(id){ return PronoStat.numericValues($(id).value); }
+
+/* ---------- Estimar ---------- */
+$('est-run').addEventListener('click', async ()=>{
+  const payload={y:serie('col'),order:[+$('p').value,+$('d').value,+$('q').value],
+    seasonal:[+$('P').value,+$('D').value,+$('Q').value,+$('m').value],
+    h:+$('h').value||12,conf:+$('conf').value||95,holdout:+$('holdout').value||0};
+  msg('Estimando (CSS)… <span class="spinner"></span>');
+  try{ const r=await PSU.postJSON('/arima/api/run',payload); msg(''); renderEst(r); }
+  catch(err){ msg(err.message,'alert-err'); }
+});
+function renderEst(r){
+  $('result').classList.remove('hidden'); interp(r.interpretacion);
+  $('viz-title').textContent=`${r.order_str} · n=${r.n}`;
+  const co=r.coeficientes.map(c=>`<tr><td><b>${c.var}</b></td><td class="num">${PSU.fmt(c.coef)}</td><td class="num">${PSU.fmt(c.se)}</td><td class="num">${PSU.fmt(c.t)}</td><td class="num">${pv(c.p)}</td><td style="text-align:center;color:#b45309;font-weight:700">${c.stars}</td></tr>`).join('');
+  const lb=r.ljung_box, jb=r.jarque_bera;
+  $('viz').innerHTML=
+    `<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Coef.</th><th>EE</th><th>t</th><th>p</th><th>Sig.</th></tr></thead><tbody>${co}</tbody></table></div>
+     <div class="stat-grid" style="margin-top:1rem">${stat('AIC',r.ajuste.aic)+stat('AICc',r.ajuste.aicc)+stat('BIC',r.ajuste.bic)+stat('log-verosim.',r.ajuste.ll)+stat('σ',r.ajuste.sigma)+stat('n efectivo',r.ajuste.n_eff)}</div>
+     <div class="section-title" style="margin-top:1rem">Diagnóstico de residuos</div>
+     <div class="chart-grid">
+       <div><div class="table-wrap"><table><thead><tr><th>Prueba</th><th>Estadístico</th><th>Resultado</th></tr></thead><tbody>
+         <tr><td><b>Ljung-Box</b> (gl ${lb.gl})</td><td class="num">Q=${PSU.fmt(lb.Q)} (p=${pv(lb.p)})</td><td><span class="pill ${lb.p<0.05?'pill-a':'pill-g'}">${lb.p<0.05?'autocorrelación':'ruido blanco'}</span></td></tr>
+         <tr><td><b>Jarque-Bera</b></td><td class="num">JB=${PSU.fmt(jb.JB)} (p=${pv(jb.p)})</td><td><span class="pill ${jb.p<0.05?'pill-a':'pill-g'}">${jb.p<0.05?'no normal':'≈ normal'}</span></td></tr>
+       </tbody></table></div></div>
+       <div><div class="chart-box" style="height:220px"><canvas id="acfr"></canvas></div></div>
+     </div>
+     <div class="section-title" style="margin-top:1rem">Serie, ajuste y pronóstico</div>
+     <div class="chart-box tall"><canvas id="fc"></canvas></div>
+     <div class="table-wrap" style="margin-top:1rem"><table><thead><tr><th>Paso</th><th>Pronóstico</th><th>IC inf.</th><th>IC sup.</th></tr></thead><tbody>${r.forecast.map((v,i)=>`<tr><td>t+${i+1}</td><td class="num">${PSU.fmt(v)}</td><td class="num">${PSU.fmt(r.intervals.lower[i])}</td><td class="num">${PSU.fmt(r.intervals.upper[i])}</td></tr>`).join('')}</tbody></table></div>`;
+  clearCh();
+  // ACF de residuos
+  const lab=lb.acf.map((_,i)=>i), banda=lb.banda;
+  CH.push(new Chart($('acfr'),{data:{labels:lab,datasets:[{type:'bar',data:lb.acf,backgroundColor:lb.acf.map((v,i)=>i===0?'#94a3b8':(Math.abs(v)>banda?'#b45309':'#a7f3d0')),barPercentage:.5},{type:'line',data:lab.map(()=>banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0},{type:'line',data:lab.map(()=>-banda),borderColor:'#6d28d9',borderDash:[5,4],borderWidth:1,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'ACF de residuos',align:'start'}},scales:{y:{suggestedMin:-1,suggestedMax:1}}}}));
+  // pronóstico
+  const n=r.n; const hist=r.series.map((v,i)=>({x:i+1,y:v}));
+  const fit=r.fitted.map((v,i)=>v==null?null:{x:i+1,y:v}).filter(Boolean);
+  const fc=r.forecast.map((v,i)=>({x:n+i+1,y:v})); fc.unshift({x:n,y:r.series[n-1]});
+  const up=r.intervals.upper.map((v,i)=>({x:n+i+1,y:v})); const lo=r.intervals.lower.map((v,i)=>({x:n+i+1,y:v}));
+  up.unshift({x:n,y:r.series[n-1]}); lo.unshift({x:n,y:r.series[n-1]});
+  const ds=[{label:'Serie',data:hist,borderColor:'#0f766e',borderWidth:2,pointRadius:1.5,parsing:false},
+    {label:'Ajuste',data:fit,borderColor:'#94a3b8',borderWidth:1,borderDash:[4,3],pointRadius:0,parsing:false},
+    {label:`IC ${r.intervals.conf}%`,data:up,borderColor:'rgba(109,40,217,.2)',backgroundColor:'rgba(109,40,217,.12)',fill:'+1',pointRadius:0,borderWidth:0,parsing:false},
+    {label:'_lo',data:lo,pointRadius:0,borderWidth:0,parsing:false},
+    {label:'Pronóstico',data:fc,borderColor:'#6d28d9',borderWidth:2.5,pointRadius:2,parsing:false}];
+  if(r.test){ const st=n-r.test.size; ds.push({label:'Predicción prueba',data:r.test.pred.map((v,i)=>({x:st+i+1,y:v})),borderColor:'#b45309',borderWidth:2,borderDash:[6,3],pointRadius:2,parsing:false}); }
+  CH.push(new Chart($('fc'),{type:'line',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,parsing:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{position:'top',labels:{filter:it=>it.text!=='_lo'}}},scales:{x:{type:'linear',title:{display:true,text:'t'}},y:{}}}}));
+  $('result').scrollIntoView({behavior:'smooth'});
+}
+
+/* ---------- Selección automática ---------- */
+$('auto-run').addEventListener('click', async ()=>{
+  const pq=+$('a-pq').value||2;
+  const payload={y:serie('a-col'),d:$('a-d').value===''?null:+$('a-d').value,D:+$('a-D').value||0,m:+$('a-m').value||12,pmax:pq,qmax:pq,Pmax:$('a-seas').checked?1:0,Qmax:$('a-seas').checked?1:0,seasonal:$('a-seas').checked,ic:'aicc'};
+  msg('Buscando (puede tardar unos segundos)… <span class="spinner"></span>');
+  try{ const r=await PSU.postJSON('/arima/api/auto',payload); msg(''); $('result').classList.remove('hidden'); interp(r.interpretacion);
+    $('viz-title').textContent='Selección automática por AICc';
+    $('viz').innerHTML='<div class="table-wrap"><table><thead><tr><th>#</th><th>Modelo</th><th>AICc</th><th>AIC</th><th>BIC</th></tr></thead><tbody>'+
+      r.ranking.map((m,i)=>{const s=m.seasonal[0]+m.seasonal[1]+m.seasonal[2]>0?`×(${m.seasonal.slice(0,3).join(',')})[${m.seasonal[3]}]`:'';return `<tr class="${i===0?'best-row':''}"><td>${i+1}</td><td>ARIMA(${m.order.join(',')})${s}</td><td class="num">${PSU.fmt(m.aicc)}</td><td class="num">${PSU.fmt(m.aic)}</td><td class="num">${PSU.fmt(m.bic)}</td></tr>`;}).join('')+'</tbody></table></div>'+
+      `<div class="btn-row"><button class="btn" id="use-best">Estimar este modelo →</button></div>`;
+    $('use-best').addEventListener('click',()=>{
+      document.querySelector('.mtab[data-m=est]').click();
+      $('col').value=$('a-col').value;
+      const o=r.mejor_order,s=r.mejor_seasonal;
+      $('p').value=o[0];$('d').value=o[1];$('q').value=o[2];$('P').value=s[0];$('D').value=s[1];$('Q').value=s[2];$('m').value=s[3];
+      $('est-run').click();
+    });
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Validación origen móvil ---------- */
+$('cv-run').addEventListener('click', async ()=>{
+  const payload={y:serie('c-col'),order:[+$('c-p').value,+$('c-d').value,+$('c-q').value],seasonal:[+$('c-P').value,+$('c-D').value,+$('c-Q').value,+$('c-m').value],h:+$('c-h').value||1,ventana:$('c-vent').value};
+  msg('Validando… <span class="spinner"></span>');
+  try{ const r=await PSU.postJSON('/arima/api/rolling',payload); msg(''); $('result').classList.remove('hidden'); interp(r.interpretacion);
+    $('viz-title').textContent=`Validación con origen móvil (${r.ventana})`;
+    $('viz').innerHTML=`<div class="stat-grid">${stat('Orígenes',r.n_origenes)+stat('Horizonte',r.h)+stat('RMSE',r.RMSE)+stat('MAE',r.MAE)}</div>
+      <div class="section-title" style="margin-top:1rem">Error por origen</div>
+      <div class="chart-box" style="height:220px"><canvas id="cvc"></canvas></div>`;
+    clearCh();
+    CH.push(new Chart($('cvc'),{data:{labels:r.origenes.map(o=>o.origen),datasets:[{type:'line',label:'RMSE',data:r.origenes.map(o=>o.rmse),borderColor:'#0f766e',borderWidth:2,pointRadius:2},{type:'line',label:'MAE',data:r.origenes.map(o=>o.mae),borderColor:'#b45309',borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'origen (t)'}}}}}));
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+</script>
+{% endblock %}

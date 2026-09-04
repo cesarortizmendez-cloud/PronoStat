@@ -58,6 +58,7 @@ urlpatterns = [
     path('inferencia/', include('apps.inferencia.urls')),
     path('econometria/', include('apps.econometria.urls')),
     path('series/', include('apps.series.urls')),
+    path('arima/', include('apps.arima.urls')),
     path('exportar/', include('apps.exportar.urls')),
     # PWA
     path('manifest.json', manifest, name='manifest'),

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.inferencia',
     'apps.econometria',
     'apps.series',
+    'apps.arima',
     'apps.exportar',
 ]
 

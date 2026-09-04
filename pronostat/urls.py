@@ -66,6 +66,7 @@ urlpatterns = [
     path('datos/', include('apps.datos.urls')),
     path('muestreo/', include('apps.muestreo.urls')),
     path('descriptiva/', include('apps.descriptiva.urls')),
+    path('probabilidad/', include('apps.probabilidad.urls')),
     path('regresion/', include('apps.regresion.urls')),
     path('pronostico/', include('apps.pronostico.urls')),
     path('inferencia/', include('apps.inferencia.urls')),

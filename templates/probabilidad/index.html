@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+{% block title %}4 · Distribuciones{% endblock %}
+{% block topbar %}4 · Distribuciones de probabilidad{% endblock %}
+{% block nav_prob %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Distribuciones de probabilidad</div>
+  <h1>Distribuciones de probabilidad</h1>
+  <p>Ajusta <b>distribuciones continuas</b> a una variable de tus datos, compara su
+     bondad de ajuste con las <b>pruebas estadísticas y valores p</b> que corresponden,
+     y visualiza el resultado sobre el histograma y el gráfico Q-Q.</p>
+</div>
+
+<div class="theory">
+  <h3>Conceptos</h3>
+  <p><b>Ajustar una distribución</b> es encontrar el modelo teórico (normal, exponencial,
+     Weibull, …) que mejor describe cómo se reparten tus datos. Los parámetros se estiman
+     por <b>máxima verosimilitud (MLE)</b>: se eligen los valores que hacen más probable la
+     muestra observada.</p>
+  <div class="formula">AIC = 2k − 2·ln L &nbsp;&nbsp; BIC = k·ln(n) − 2·ln L &nbsp;&nbsp; (menor = mejor)</div>
+  <p>La <b>bondad de ajuste</b> se contrasta con pruebas cuya hipótesis nula es
+     «los datos siguen esa distribución». Si el <b>valor p ≥ 0,05</b> no se rechaza el
+     ajuste; si p &lt; 0,05, la distribución no describe bien los datos.</p>
+</div>
+
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>¿Qué hace este módulo?</b> Toma una variable numérica y prueba, una por una, un
+       catálogo de distribuciones de probabilidad continuas. Para cada una estima sus
+       parámetros y calcula qué tan bien reproduce tus datos, entregando un <b>ranking</b>
+       de la que mejor ajusta a la que peor.</p>
+    <p><b>¿Cómo se usa?</b> 1) Carga un dataset en el módulo 1. 2) Elige la variable
+       numérica. 3) Pulsa «Ajustar distribuciones»: obtienes el ranking, el histograma con
+       las curvas ajustadas superpuestas y el gráfico Q-Q de la mejor. 4) Opcionalmente,
+       evalúa la <b>normalidad</b> con varias pruebas a la vez y usa la <b>calculadora</b>
+       para obtener probabilidades sobre la distribución ajustada.</p>
+    <p><b>¿Cómo se interpretan los resultados?</b> La primera fila del ranking (resaltada)
+       es la mejor: tiene el <b>menor AIC</b>. La <b>ΔAIC</b> mide cuánto peor es cada otra
+       distribución (ΔAIC &lt; 2 = equivalente; &gt; 10 = claramente peor). Los <b>valores p</b>
+       de las pruebas Kolmogorov-Smirnov, Cramér-von Mises y chi-cuadrado indican si el
+       ajuste es aceptable (p ≥ 0,05). En el <b>Q-Q</b>, si los puntos siguen la diagonal,
+       el ajuste es bueno; curvaturas en los extremos delatan asimetría o colas pesadas.</p>
+    <p><b>Símbolos:</b> L verosimilitud · k nº de parámetros · n tamaño de muestra ·
+       AIC/BIC criterios de información · D estadístico de KS · A² de Anderson-Darling ·
+       W² de Cramér-von Mises · χ² chi-cuadrado · p valor p · MLE máxima verosimilitud.</p>
+  </div>
+</details>
+
+<div class="card">
+  <h2><span class="step">1</span> Configuración</h2>
+  <div id="needdata"></div>
+  <div id="controls">
+    <div class="grid grid-3">
+      <div class="field"><label>Variable numérica</label><select id="col"></select></div>
+      <div class="field"><label>Clases del histograma</label>
+        <input type="number" id="bins" placeholder="automático (Sturges)" min="3" max="60"></div>
+      <div class="field" style="justify-content:flex-end">
+        <button class="btn" id="btnRun">Ajustar distribuciones</button></div>
+    </div>
+    <div id="run-msg" style="margin-top:.6rem"></div>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>Resumen de la variable <span id="varname" class="pill pill-b"></span></h2>
+    <div class="stat-grid" id="stats"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ranking de ajuste</h2>
+    <p class="card-sub">Ordenado por AIC (menor es mejor). La fila resaltada es la mejor distribución.</p>
+    <div class="table-wrap">
+      <table id="rankTable">
+        <thead><tr>
+          <th>Distribución</th><th>Parámetros (MLE)</th><th>ln L</th><th>AIC</th><th>ΔAIC</th>
+          <th>BIC</th><th>KS D (p)</th><th>CvM (p)</th><th>χ² (p, gl)</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <ul id="interp" class="small" style="margin-top:1rem;line-height:1.7"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Visualización</h2>
+    <div class="btn-row" style="gap:.4rem;margin-top:0">
+      <button class="btn btn-ghost chart-tab active" data-t="pdf">Histograma + densidades</button>
+      <button class="btn btn-ghost chart-tab" data-t="qq">Q-Q (mejor ajuste)</button>
+    </div>
+    <div id="chart-note" class="alert alert-info small"></div>
+    <div class="chart-box tall"><canvas id="mainChart"></canvas></div>
+  </div>
+</div>
+
+<div id="norm-card" class="card hidden">
+  <h2><span class="step">2</span> Pruebas de normalidad</h2>
+  <p class="card-sub">Evalúa con varias pruebas a la vez si la variable proviene de una distribución normal.</p>
+  <button class="btn btn-ghost" id="btnNorm">Evaluar normalidad</button>
+  <div id="norm-msg" style="margin-top:.6rem"></div>
+  <div id="norm-res" class="hidden" style="margin-top:1rem">
+    <div class="table-wrap">
+      <table id="normTable">
+        <thead><tr><th>Prueba</th><th>Estadístico</th><th>Valor p</th><th>Decisión (α=0,05)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="norm-verdict" style="margin-top:.9rem"></div>
+  </div>
+</div>
+
+<div id="calc-card" class="card hidden">
+  <h2><span class="step">3</span> Calculadora de probabilidades</h2>
+  <p class="card-sub">Calcula probabilidades y percentiles usando una de las distribuciones ajustadas.</p>
+  <div class="grid grid-3">
+    <div class="field"><label>Distribución</label><select id="calc-dist"></select></div>
+    <div class="field"><label>Cálculo</label>
+      <select id="calc-modo">
+        <option value="menor">P(X &lt; a)</option>
+        <option value="mayor">P(X &gt; a)</option>
+        <option value="entre">P(a &lt; X &lt; b)</option>
+        <option value="cuantil">Percentil: x tal que P(X &lt; x) = p</option>
+      </select></div>
+    <div class="field" id="wrap-a"><label>a</label><input type="number" id="calc-a" step="any"></div>
+    <div class="field hidden" id="wrap-b"><label>b</label><input type="number" id="calc-b" step="any"></div>
+    <div class="field hidden" id="wrap-p"><label>p (0 a 1)</label><input type="number" id="calc-p" step="any" min="0" max="1" value="0.95"></div>
+  </div>
+  <div class="btn-row"><button class="btn" id="btnCalc">Calcular</button></div>
+  <div id="calc-res" style="margin-top:.6rem"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+const PAL=['#1e3a8a','#4338ca','#b45309','#0891b2','#be185d','#15803d','#a16207','#7c3aed','#dc2626','#0d9488'];
+let mainChart=null, FIT=null, COL='', CURTAB='pdf';
+
+function initCols(){
+  if(!PSU.requireDataset('needdata')){ $('controls').style.display='none'; return; }
+  const nums=PronoStat.numericColumns();
+  if(!nums.length){ $('needdata').innerHTML='<div class="alert alert-warn">El dataset no tiene columnas numéricas.</div>'; $('controls').style.display='none'; return; }
+  PSU.fillColumnSelect($('col'),nums);
+}
+initCols();
+
+function fmt(v){ return (v===null||v===undefined||isNaN(v))?'—':PSU.fmt(v); }
+function pcell(p){ const s=(p===null||isNaN(p))?'—':p.toFixed(3); return (p>=0.05)?`<b style="color:#15803d">${s}</b>`:s; }
+function stat(k,v,u){ return `<div class="stat"><div class="k">${k}</div><div class="v">${fmt(v)}</div>${u?`<div class="u">${u}</div>`:''}</div>`; }
+
+$('btnRun').addEventListener('click', run);
+async function run(){
+  COL=$('col').value;
+  const d=PronoStat.get(), values=d.rows.map(r=>r[COL]);
+  const bins=$('bins').value?parseInt($('bins').value):'auto';
+  $('run-msg').innerHTML='Ajustando distribuciones… <span class="spinner"></span>';
+  try{
+    FIT=await PSU.postJSON('/probabilidad/api/fit',{values,bins});
+    $('run-msg').innerHTML='';
+    render(FIT);
+    $('norm-card').classList.remove('hidden');
+    $('calc-card').classList.remove('hidden');
+    $('norm-res').classList.add('hidden'); $('norm-msg').innerHTML='';
+    $('calc-res').innerHTML='';
+  }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+}
+
+function render(r){
+  $('results').classList.remove('hidden');
+  $('varname').textContent=COL;
+  const s=r.resumen;
+  $('stats').innerHTML=
+    stat('n',r.n)+stat('Media',s.media)+stat('Desv. estándar',s.desv)+
+    stat('Mínimo',s.min)+stat('Máximo',s.max)+
+    stat('Asimetría',s.asimetria)+stat('Curtosis',s.curtosis);
+
+  const tb=$('rankTable').querySelector('tbody'); tb.innerHTML='';
+  r.ranking.forEach(row=>{
+    tb.insertAdjacentHTML('beforeend',
+      `<tr class="${row.best?'best-row':''}">
+        <td>${row.label}${row.best?' <span class="pill pill-g">mejor</span>':''}</td>
+        <td style="text-align:left;font-size:.8rem">${row.params_fmt}</td>
+        <td class="num">${fmt(row.loglik)}</td>
+        <td class="num">${fmt(row.aic)}</td>
+        <td class="num">${row.delta_aic<0.05?'0.0':'+'+fmt(row.delta_aic)}</td>
+        <td class="num">${fmt(row.bic)}</td>
+        <td class="num">${fmt(row.ks_stat)} (${pcell(row.ks_p)})</td>
+        <td class="num">${pcell(row.cvm_p)}</td>
+        <td class="num">${pcell(row.chi2_p)} <span class="muted">gl ${row.chi2_df}</span></td>
+      </tr>`);
+  });
+  $('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
+
+  // calculadora: opciones de distribución
+  const cd=$('calc-dist'); cd.innerHTML='';
+  r.ranking.forEach(row=>{ const o=document.createElement('option'); o.value=row.dist; o.textContent=row.label+(row.best?' (mejor)':''); cd.appendChild(o); });
+
+  drawChart(CURTAB);
+}
+
+document.querySelectorAll('.chart-tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.chart-tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); CURTAB=b.dataset.t; drawChart(CURTAB);
+}));
+
+function killChart(){ if(mainChart){ mainChart.destroy(); mainChart=null; } }
+
+function drawChart(t){
+  if(!FIT) return; killChart();
+  const ctx=$('mainChart');
+  if(t==='pdf'){
+    $('chart-note').innerHTML='Barras: <b>histograma de densidad</b> de tus datos. Curvas: las <b>densidades ajustadas</b> (se muestran las 5 mejores por AIC; la más gruesa es la mejor). Mientras mejor siga una curva la forma de las barras, mejor ajusta.';
+    const c=FIT.chart, labels=FIT.ranking.slice(0,5).map(r=>r.label);
+    const bars={type:'bar',label:'Datos (densidad)',data:c.hist.centers.map((x,i)=>({x,y:c.hist.density[i]})),
+      backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1,order:9,parsing:false};
+    const lines=labels.map((lab,i)=>({type:'line',label:lab,
+      data:c.x.map((x,j)=>({x,y:c.pdfs[lab][j]})),borderColor:PAL[i%PAL.length],
+      borderWidth:i===0?3:1.6,pointRadius:0,tension:.2,parsing:false,order:i}));
+    mainChart=new Chart(ctx,{data:{datasets:[bars,...lines]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},scales:{x:{type:'linear',title:{display:true,text:COL}},
+      y:{title:{display:true,text:'densidad'},beginAtZero:true}}}});
+  } else {
+    const q=FIT.qq;
+    $('chart-note').innerHTML=`Gráfico <b>cuantil-cuantil</b> de la mejor distribución (<b>${q.best_label}</b>): cuantiles teóricos (eje X) contra los observados (eje Y). Si los puntos siguen la recta, el ajuste es bueno.`;
+    mainChart=new Chart(ctx,{data:{datasets:[
+      {type:'scatter',label:'Datos',data:q.theo.map((x,i)=>({x,y:q.sample[i]})),backgroundColor:'#1e3a8a',pointRadius:2.5},
+      {type:'line',label:'Ajuste ideal',data:q.line.map(p=>({x:p[0],y:p[1]})),borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0,parsing:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{position:'top'}},
+      scales:{x:{type:'linear',title:{display:true,text:'cuantiles teóricos'}},y:{title:{display:true,text:'cuantiles observados'}}}}});
+  }
+}
+
+/* ---------- Normalidad ---------- */
+$('btnNorm').addEventListener('click', async ()=>{
+  if(!COL){ return; }
+  const d=PronoStat.get(), values=d.rows.map(r=>r[COL]);
+  $('norm-msg').innerHTML='Evaluando… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/probabilidad/api/normalidad',{values});
+    $('norm-msg').innerHTML='';
+    const tb=$('normTable').querySelector('tbody'); tb.innerHTML='';
+    r.pruebas.forEach(t=>{
+      tb.insertAdjacentHTML('beforeend',
+        `<tr><td style="text-align:left">${t.nombre} <span class="muted">(${t.simbolo})</span></td>
+         <td class="num">${fmt(t.stat)}</td><td class="num">${pcell(t.p)}</td>
+         <td>${t.rechaza?'<span class="pill pill-r">rechaza normalidad</span>':'<span class="pill pill-g">compatible</span>'}</td></tr>`);
+    });
+    if(r.anderson){
+      tb.insertAdjacentHTML('beforeend',
+        `<tr><td style="text-align:left">Anderson-Darling <span class="muted">(A²)</span></td>
+         <td class="num">${fmt(r.anderson.stat)}</td><td class="num muted">crítico 5%: ${fmt(r.anderson.critico_5)}</td>
+         <td>${r.anderson.rechaza?'<span class="pill pill-r">rechaza normalidad</span>':'<span class="pill pill-g">compatible</span>'}</td></tr>`);
+    }
+    $('norm-verdict').innerHTML=`<div class="alert ${r.normal?'alert-ok':'alert-warn'}">${r.veredicto}</div>`;
+    $('norm-res').classList.remove('hidden');
+  }catch(err){ $('norm-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+
+/* ---------- Calculadora ---------- */
+$('calc-modo').addEventListener('change', ()=>{
+  const m=$('calc-modo').value;
+  $('wrap-a').classList.toggle('hidden', m==='cuantil');
+  $('wrap-b').classList.toggle('hidden', m!=='entre');
+  $('wrap-p').classList.toggle('hidden', m!=='cuantil');
+});
+$('btnCalc').addEventListener('click', async ()=>{
+  if(!FIT){ return; }
+  const dist=$('calc-dist').value;
+  const row=FIT.ranking.find(r=>r.dist===dist);
+  const m=$('calc-modo').value;
+  const body={dist,params:row.params,modo:m,a:parseFloat($('calc-a').value),b:parseFloat($('calc-b').value),p:parseFloat($('calc-p').value)};
+  try{
+    const r=await PSU.postJSON('/probabilidad/api/prob',body);
+    let out;
+    if(m==='cuantil'){ out=`<b>${r.expr}</b> &nbsp;→&nbsp; x = <b>${PSU.fmt(r.x)}</b>`; }
+    else{ out=`<b>${r.expr}</b> &nbsp;→&nbsp; probabilidad = <b>${(r.prob*100).toFixed(2)}%</b> (${r.prob.toFixed(4)})`; }
+    $('calc-res').innerHTML=`<div class="alert alert-info">${row.label}: ${out}</div>`;
+  }catch(err){ $('calc-res').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+</script>
+{% endblock %}

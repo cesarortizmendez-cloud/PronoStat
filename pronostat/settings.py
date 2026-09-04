@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.datos',
     'apps.muestreo',
     'apps.descriptiva',
+    'apps.probabilidad',
     'apps.regresion',
     'apps.pronostico',
     'apps.inferencia',

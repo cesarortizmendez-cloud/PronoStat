@@ -22,25 +22,55 @@ _MANIFEST = '''{
 }'''
 
 _SERVICE_WORKER = '''
-var CACHE = "pronostat-v2";
+var CACHE = "pronostat-v3";
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(["/"]); }).catch(function(){}));
   self.skipWaiting();
 });
 self.addEventListener("activate", function(e){
-  e.waitUntil(caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);})); }));
-  self.clients.claim();
+  e.waitUntil(
+    caches.keys().then(function(ks){
+      return Promise.all(ks.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
+    }).then(function(){ return self.clients.claim(); })
+  );
 });
 self.addEventListener("fetch", function(e){
   var req = e.request;
   if (req.method !== "GET") return;
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then(function(res){ var cp=res.clone(); caches.open(CACHE).then(function(c){c.put(req,cp);}); return res; }).catch(function(){ return caches.match(req).then(function(r){ return r || caches.match("/"); }); }));
+
+  // Datos dinamicos (APIs, exportaciones, healthz o cualquier query): SIEMPRE de red,
+  // nunca desde cache. Asi las bases de ejemplo llegan siempre frescas del servidor.
+  var dinamico = url.pathname.indexOf("/api/") !== -1
+              || url.pathname.indexOf("/exportar/") !== -1
+              || url.pathname === "/healthz"
+              || url.search !== "";
+  if (dinamico) {
+    e.respondWith(fetch(req).catch(function(){ return caches.match(req); }));
     return;
   }
-  e.respondWith(caches.match(req).then(function(r){ return r || fetch(req).then(function(res){ var cp=res.clone(); caches.open(CACHE).then(function(c){c.put(req,cp);}); return res; }).catch(function(){ return r; }); }));
+
+  // Navegacion (paginas de modulos): red primero, cache solo como respaldo offline.
+  if (req.mode === "navigate") {
+    e.respondWith(
+      fetch(req).then(function(res){
+        if (res && res.ok) { var cp = res.clone(); caches.open(CACHE).then(function(c){ c.put(req, cp); }); }
+        return res;
+      }).catch(function(){ return caches.match(req).then(function(r){ return r || caches.match("/"); }); })
+    );
+    return;
+  }
+
+  // Estaticos (css/js/iconos): cache primero, pero solo se cachea si la respuesta es OK.
+  e.respondWith(
+    caches.match(req).then(function(r){
+      return r || fetch(req).then(function(res){
+        if (res && res.ok) { var cp = res.clone(); caches.open(CACHE).then(function(c){ c.put(req, cp); }); }
+        return res;
+      });
+    })
+  );
 });
 '''
 

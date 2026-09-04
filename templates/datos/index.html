@@ -4,6 +4,26 @@
 {% block nav_datos %}active{% endblock %}
 
 {% block content %}
+<style>
+.pv-wrap{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.pv-grid{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:100%}
+.pv-grid th.pv-col{position:sticky;top:0;z-index:2;background:#eef2f7;border-bottom:2px solid var(--line-d);
+  border-right:1px solid var(--line);padding:.5rem .7rem;text-align:left;vertical-align:top;white-space:nowrap}
+.pv-check{display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:700}
+.pv-check input{width:auto;cursor:pointer}
+.pv-type{margin-top:.4rem;font-size:.74rem;padding:.2rem .35rem;width:auto;min-width:96px}
+.pv-meta{margin-top:.3rem;font-size:.66rem;color:var(--muted);font-weight:400;display:flex;gap:.3rem;align-items:center}
+.pv-grid td.pv-cell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  padding:.35rem .7rem;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.pv-grid td.pv-cell.num{font-family:var(--mono);text-align:right}
+.pv-grid tbody tr:hover td{background:#f8fafc}
+.pv-idx{position:sticky;left:0;background:#f8fafc;color:var(--muted);font-size:.7rem;text-align:center;
+  border-right:1px solid var(--line-d)!important;min-width:38px}
+.pv-grid th.pv-idx{z-index:3;background:#eef2f7}
+.pv-null{color:#cbd5e1}
+.pv-off{opacity:.3}
+.pv-badge{font-size:.6rem;padding:.05rem .35rem;border-radius:5px;background:var(--amber-l);color:var(--amber)}
+</style>
 <div class="page-head">
   <div class="crumbs">Inicio › Datos</div>
   <h1>Módulo de Datos</h1>
@@ -55,22 +75,22 @@
   <div id="galeria" class="hidden" style="margin-top:1rem"></div>
 </div>
 
-<!-- PASO 2: tipos y perfil -->
+<!-- PASO 2: vista previa y selección de columnas -->
 <div class="card hidden" id="card-profile">
-  <h2><span class="step">2</span> Campos, tipos y calidad</h2>
-  <p class="card-sub">Selecciona las columnas a conservar y ajusta el tipo si la detección no es correcta.</p>
+  <h2><span class="step">2</span> Vista previa y selección de columnas</h2>
+  <p class="card-sub">Revisa los datos como una tabla, <b>marca o desmarca</b> las columnas que quieres cargar
+     y ajusta el tipo de cada una si la detección no es correcta. Las columnas desmarcadas se atenúan
+     y no se incluirán en el dataset.</p>
   <div id="profile-summary"></div>
-  <div class="table-wrap">
-    <table id="profile-table">
-      <thead>
-        <tr>
-          <th>Conservar</th><th>Columna</th><th>Tipo</th><th>Faltantes</th>
-          <th>Únicos</th><th>Muestra</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <div class="btn-row" style="margin-top:0;margin-bottom:.6rem;gap:.5rem;align-items:center">
+    <button class="btn btn-ghost" id="selAll" type="button">Marcar todas</button>
+    <button class="btn btn-ghost" id="selNone" type="button">Desmarcar todas</button>
+    <span class="small muted" id="sel-count"></span>
   </div>
+  <div class="table-wrap pv-wrap">
+    <table id="preview-grid" class="pv-grid"></table>
+  </div>
+  <p class="small muted" id="pv-note" style="margin-top:.5rem"></p>
 </div>
 
 <!-- PASO 3: limpieza -->
@@ -206,9 +226,13 @@ async function analyze(){
 }
 
 const TYPES = ['numérico','fecha','texto','booleano'];
+const PV_MAX = 20;               // filas mostradas en la previsualización
+function esc(v){ return String(v).replace(/[&<>"]/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+
 function renderProfile(){
   $('card-profile').classList.remove('hidden');
   $('card-clean').classList.remove('hidden');
+  const cols = PROFILE.columns;
   const dupPill = PROFILE.duplicate_rows>0
      ? `<span class="pill pill-a">${PROFILE.duplicate_rows} duplicadas</span>` : `<span class="pill pill-g">sin duplicados</span>`;
   $('profile-summary').innerHTML =
@@ -217,21 +241,58 @@ function renderProfile(){
        <div class="stat"><div class="k">Columnas</div><div class="v">${PROFILE.n_cols}</div></div>
        <div class="stat"><div class="k">Duplicadas</div><div class="v">${PROFILE.duplicate_rows}</div><div class="u">${dupPill}</div></div>
      </div>`;
-  const tb = $('profile-table').querySelector('tbody'); tb.innerHTML='';
-  PROFILE.columns.forEach(c => {
+
+  // --- Cabecera: por columna, checkbox + nombre + tipo + calidad ---
+  const head = '<thead><tr><th class="pv-col pv-idx">#</th>' + cols.map(c=>{
     const opts = TYPES.map(t=>`<option value="${t}" ${t===c.type?'selected':''}>${t}</option>`).join('');
-    const miss = c.missing>0 ? `<span class="pill pill-a">${c.missing} (${c.missing_pct}%)</span>` : '<span class="pill pill-g">0</span>';
-    const tr=document.createElement('tr');
-    tr.innerHTML =
-      `<td style="text-align:center"><input type="checkbox" class="keep" data-col="${c.name}" checked></td>
-       <td><b>${c.name}</b></td>
-       <td><select class="type" data-col="${c.name}">${opts}</select></td>
-       <td>${miss}</td>
-       <td class="num">${c.unique}</td>
-       <td class="small muted">${(c.sample||[]).map(v=>v===null?'∅':v).join(', ')}</td>`;
-    tb.appendChild(tr);
-  });
+    const miss = c.missing>0 ? `<span class="pv-badge">${c.missing_pct}% faltan</span>` : '';
+    return `<th class="pv-col" data-colh="${esc(c.name)}">
+       <label class="pv-check"><input type="checkbox" class="keep" data-col="${esc(c.name)}" checked> ${esc(c.name)}</label>
+       <select class="type pv-type" data-col="${esc(c.name)}">${opts}</select>
+       <div class="pv-meta">${c.unique} únicos ${miss}</div>
+     </th>`;
+  }).join('') + '</tr></thead>';
+
+  // --- Cuerpo: primeras filas reales del archivo/hoja ---
+  const N = Math.min(PV_MAX, RAW.rows.length);
+  let body = '<tbody>';
+  for (let i=0;i<N;i++){
+    const r = RAW.rows[i];
+    body += `<tr><td class="pv-cell pv-idx">${i+1}</td>` + cols.map(c=>{
+      const v = r[c.name];
+      const disp = (v===null||v===undefined||v==='') ? '<span class="pv-null">∅</span>' : esc(v);
+      return `<td class="pv-cell ${c.type==='numérico'?'num':''}" data-col="${esc(c.name)}">${disp}</td>`;
+    }).join('') + '</tr>';
+  }
+  body += '</tbody>';
+  $('preview-grid').innerHTML = head + body;
+
+  $('pv-note').textContent = RAW.rows.length>N
+    ? `Mostrando ${N} de ${PROFILE.n_rows} filas. Al guardar se cargan todas las filas de las columnas marcadas.`
+    : `Mostrando todas las filas (${PROFILE.n_rows}).`;
+
+  $('preview-grid').querySelectorAll('.keep').forEach(cb=>cb.addEventListener('change', updateDim));
+  updateDim();
 }
+
+function updateDim(){
+  const grid = $('preview-grid');
+  const excluded = new Set([...grid.querySelectorAll('.keep')].filter(c=>!c.checked).map(c=>c.dataset.col));
+  grid.querySelectorAll('[data-col],[data-colh]').forEach(el=>{
+    const col = el.dataset.col || el.dataset.colh;
+    el.classList.toggle('pv-off', excluded.has(col));
+  });
+  const total = grid.querySelectorAll('.keep').length, kept = total - excluded.size;
+  $('sel-count').textContent = `${kept} de ${total} columnas seleccionadas`;
+}
+
+document.addEventListener('click', (e)=>{
+  if (e.target.id==='selAll' || e.target.id==='selNone'){
+    const val = e.target.id==='selAll';
+    document.querySelectorAll('#preview-grid .keep').forEach(cb=>cb.checked=val);
+    updateDim();
+  }
+});
 
 /* ---------- Limpieza ---------- */
 $('btnClean').addEventListener('click', async () => {

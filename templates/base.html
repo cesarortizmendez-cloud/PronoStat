@@ -62,8 +62,14 @@ a{color:var(--teal)}
 .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
 .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem}
-.topbar-title{font-weight:700;font-size:1.05rem}
+.topbar-title{font-weight:700;font-size:1.05rem;white-space:nowrap}
 .topbar-right{display:flex;align-items:center;gap:1rem}
+.topbar-ds{margin-left:1rem;margin-right:auto;display:flex;align-items:center;gap:.35rem;
+  font-size:.8rem;background:var(--blue-l);color:#1e40af;border:1px solid #93c5fd;
+  border-radius:999px;padding:.28rem .8rem;max-width:42ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-ds .tds-lbl{color:#3b62c4;font-weight:600}
+.topbar-ds .tds-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.topbar-ds .tds-n{color:#3b62c4}
 .author{font-size:.78rem;color:var(--muted)}
 .btn-install{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-weight:600;cursor:pointer;font-size:.82rem}
 .content{flex:1;padding:1.6rem;max-width:1180px;width:100%;margin:0 auto}
@@ -202,6 +208,9 @@ td.num{font-family:var(--mono)}
   .topbar{padding-left:4rem}
   .grid-2,.grid-3,.chart-grid,.roadmap-cols{grid-template-columns:1fr}
   .author{display:none}
+  .topbar-title{font-size:.9rem}
+  .topbar-ds{margin-left:.5rem;max-width:16ch;font-size:.72rem;padding:.2rem .55rem}
+  .topbar-ds .tds-lbl,.topbar-ds .tds-n{display:none}
 }
 
 {% endverbatim %}</style>
@@ -251,6 +260,7 @@ td.num{font-family:var(--mono)}
   <main class="main">
     <header class="topbar">
       <div class="topbar-title">{% block topbar %}PronoStat{% endblock %}</div>
+      <div class="topbar-ds" id="topbar-ds" hidden></div>
       <div class="topbar-right">
         <a class="author" href="https://cv-cesarortiz.vercel.app" target="_blank" rel="noopener">Dr. César Ortiz Méndez</a>
         <button id="pwa-install" class="btn-install" hidden>Instalar</button>
@@ -303,16 +313,31 @@ td.num{font-family:var(--mono)}
     },
 
     refreshBadge() {
-      const el = document.getElementById('ds-status');
-      if (!el) return;
       const d = this.get();
-      if (d) {
-        el.className = 'ds-status ds-loaded';
-        el.textContent = `✔ ${d.rows.length} filas · ${d.columns.length} campos`;
-        el.title = `${d.source || 'dataset'}${d.sheet ? ' · ' + d.sheet : ''}`;
-      } else {
-        el.className = 'ds-status ds-empty';
-        el.textContent = 'Sin datos cargados';
+      const el = document.getElementById('ds-status');
+      if (el) {
+        if (d) {
+          el.className = 'ds-status ds-loaded';
+          el.textContent = `✔ ${d.rows.length} filas · ${d.columns.length} campos`;
+          el.title = `${d.source || 'dataset'}${d.sheet ? ' · ' + d.sheet : ''}`;
+        } else {
+          el.className = 'ds-status ds-empty';
+          el.textContent = 'Sin datos cargados';
+        }
+      }
+      /* Nombre de la base activa en la barra superior (todos los módulos). */
+      const top = document.getElementById('topbar-ds');
+      if (top) {
+        if (d) {
+          top.hidden = false;
+          top.innerHTML = '<span class="tds-lbl">Base activa:</span> <b class="tds-name"></b> <span class="tds-n"></span>';
+          top.querySelector('.tds-name').textContent = d.source || 'dataset';
+          top.querySelector('.tds-n').textContent = '· ' + d.rows.length + ' filas';
+          top.title = (d.source || 'dataset') + (d.sheet ? ' · ' + d.sheet : '') + ' · ' + d.rows.length + ' filas · ' + d.columns.length + ' campos';
+        } else {
+          top.hidden = true;
+          top.innerHTML = '';
+        }
       }
     }
   };

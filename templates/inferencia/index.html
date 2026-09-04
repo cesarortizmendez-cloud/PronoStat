@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block title %}5 · Inferencia{% endblock %}
+{% block topbar %}5 · Inferencia — Intervalos de confianza y tamaño de muestra{% endblock %}
+{% block nav_infer %}active{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="crumbs">Inicio › Inferencia</div>
+  <h1>🎯 Inferencia estadística</h1>
+  <p>Estimación por <b>intervalos de confianza</b> para la media (σ conocida y desconocida) y para
+     proporciones, con <b>nivel de confianza ajustable</b> y <b>cálculo del tamaño de muestra (n)</b>.
+     Funciona con tus datos cargados o ingresando el resumen de un ejercicio.</p>
+</div>
+
+<div class="theory">
+  <h3>📚 Fundamentos</h3>
+  <p>Un <b>intervalo de confianza</b> del (1−α)·100% para un parámetro es un rango construido a partir
+     de la muestra que, en repeticiones del muestreo, contendría al parámetro esa proporción de veces.</p>
+  <div class="formula">Media (σ conocida):  x̄ ± z<sub>α/2</sub>·σ/√n &nbsp;&nbsp;&nbsp; Media (σ desconocida):  x̄ ± t<sub>α/2,&nbsp;n−1</sub>·s/√n</div>
+  <div class="formula">Proporción:  p̂ ± z<sub>α/2</sub>·√(p̂(1−p̂)/n) &nbsp;&nbsp;&nbsp; Tamaño n (media):  n = (z<sub>α/2</sub>·σ/E)² &nbsp;&nbsp;&nbsp; Tamaño n (prop.):  n = z²·p̂(1−p̂)/E²</div>
+  <p><b>Teorema Central del Límite (TCL):</b> para n grande (regla práctica n ≥ 30), la distribución de x̄
+     es aproximadamente normal aunque la población no lo sea. Regla de decisión: si <b>σ es conocida</b> →
+     usar <b>Z</b>; si <b>σ es desconocida</b> → usar <b>t</b> con n−1 grados de libertad (y t ≈ Z cuando n es grande).</p>
+</div>
+
+<details class="card" style="cursor:pointer">
+  <summary style="font-weight:700;font-size:1rem">📖 Símbolos y parámetros</summary>
+  <div class="small" style="margin-top:.8rem;line-height:1.8">
+    <p><b>μ</b>: media poblacional (desconocida) · <b>x̄</b>: media muestral · <b>σ</b>: desviación poblacional (si se conoce) · <b>s</b>: desviación muestral</p>
+    <p><b>p</b>: proporción poblacional · <b>p̂</b>: proporción muestral = x/n · <b>x</b>: nº de éxitos · <b>n</b>: tamaño de muestra · <b>N</b>: tamaño de la población (finita)</p>
+    <p><b>α</b>: nivel de significancia (1 − confianza) · <b>z<sub>α/2</sub></b>: valor crítico normal · <b>t<sub>α/2,gl</sub></b>: valor crítico t · <b>E</b>: error máximo admisible (margen de error)</p>
+    <p><b>ES</b>: error estándar (σ/√n o s/√n) · <b>gl</b>: grados de libertad = n−1 · <b>fpc</b>: corrección por población finita √((N−n)/(N−1))</p>
+  </div>
+</details>
+
+<div class="card">
+  <div id="tabs" class="btn-row" style="gap:.4rem;margin-bottom:.4rem">
+    <button class="btn btn-ghost mtab active" data-m="media">IC media</button>
+    <button class="btn btn-ghost mtab" data-m="prop">IC proporción</button>
+    <button class="btn btn-ghost mtab" data-m="nmedia">Tamaño n (media)</button>
+    <button class="btn btn-ghost mtab" data-m="nprop">Tamaño n (proporción)</button>
+  </div>
+
+  <!-- ===================== IC MEDIA ===================== -->
+  <div class="mode" id="m-media">
+    <p class="card-sub">Intervalo de confianza para la media poblacional μ.</p>
+    <div class="grid grid-3">
+      <div class="field"><label>Origen de los datos</label>
+        <select id="med-origen"><option value="datos">Desde el dataset cargado</option><option value="resumen">Ingresar resumen (ejercicio)</option></select></div>
+      <div class="field"><label class="check" style="margin-top:1.6rem"><input type="checkbox" id="med-sigma-known"> σ (poblacional) es conocida</label></div>
+      <div class="field"><label>Nivel de confianza (%)</label><input type="number" id="med-conf" value="95" min="50" max="99.9" step="0.5"></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="field med-datos"><label>Columna numérica</label><select id="med-col"></select></div>
+      <div class="field med-resumen" style="display:none"><label>Media muestral x̄</label><input type="number" id="med-xbar" step="any"></div>
+      <div class="field med-resumen" style="display:none"><label>Tamaño de muestra n</label><input type="number" id="med-n" min="2"></div>
+      <div class="field med-resumen med-s" style="display:none"><label>Desviación muestral s</label><input type="number" id="med-s" step="any"></div>
+      <div class="field med-sigma" style="display:none"><label>σ poblacional</label><input type="number" id="med-sigma" step="any"></div>
+      <div class="field"><label>Población N (opcional, finita)</label><input type="number" id="med-N" min="1" placeholder="∞"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="med-calc">Calcular intervalo</button>
+      <button class="btn btn-ghost ej" data-t="med1">Ejemplo: σ conocida</button>
+      <button class="btn btn-ghost ej" data-t="med2">Ejemplo: σ desconocida</button>
+    </div>
+  </div>
+
+  <!-- ===================== IC PROPORCIÓN ===================== -->
+  <div class="mode" id="m-prop" style="display:none">
+    <p class="card-sub">Intervalo de confianza para una proporción poblacional p.</p>
+    <div class="grid grid-3">
+      <div class="field"><label>Origen de los datos</label>
+        <select id="prop-origen"><option value="resumen">Ingresar x y n (ejercicio)</option><option value="datos">Desde el dataset (contar éxitos)</option></select></div>
+      <div class="field"><label>Nivel de confianza (%)</label><input type="number" id="prop-conf" value="95" min="50" max="99.9" step="0.5"></div>
+      <div class="field"><label>Población N (opcional)</label><input type="number" id="prop-N" min="1" placeholder="∞"></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="field prop-resumen"><label>Nº de éxitos x</label><input type="number" id="prop-x" min="0"></div>
+      <div class="field prop-resumen"><label>Tamaño de muestra n</label><input type="number" id="prop-n" min="1"></div>
+      <div class="field prop-datos" style="display:none"><label>Columna</label><select id="prop-col"></select></div>
+      <div class="field prop-datos" style="display:none"><label>Éxito si…</label>
+        <select id="prop-cond"><option value="eq">es igual a</option><option value="gt">es mayor que</option><option value="lt">es menor que</option></select></div>
+      <div class="field prop-datos" style="display:none"><label>Valor / umbral</label><input type="text" id="prop-val"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="prop-calc">Calcular intervalo</button>
+      <button class="btn btn-ghost ej" data-t="prop1">Ejemplo: aprobación</button>
+    </div>
+  </div>
+
+  <!-- ===================== n MEDIA ===================== -->
+  <div class="mode" id="m-nmedia" style="display:none">
+    <p class="card-sub">Tamaño de muestra necesario para estimar la media con un error máximo dado.</p>
+    <div class="grid grid-3">
+      <div class="field"><label>Error máximo E (± en unidades)</label><input type="number" id="nm-E" step="any"></div>
+      <div class="field"><label>σ (o s estimada)</label><input type="number" id="nm-sigma" step="any"></div>
+      <div class="field"><label>Nivel de confianza (%)</label><input type="number" id="nm-conf" value="95" min="50" max="99.9" step="0.5"></div>
+      <div class="field"><label>Población N (opcional)</label><input type="number" id="nm-N" min="1" placeholder="∞"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="nm-calc">Calcular n</button>
+      <button class="btn btn-ghost ej" data-t="nm1">Ejemplo</button>
+    </div>
+  </div>
+
+  <!-- ===================== n PROPORCIÓN ===================== -->
+  <div class="mode" id="m-nprop" style="display:none">
+    <p class="card-sub">Tamaño de muestra necesario para estimar una proporción con un error máximo dado.</p>
+    <div class="grid grid-3">
+      <div class="field"><label>Error máximo E (proporción, ej 0.03)</label><input type="number" id="np-E" step="any" placeholder="0.03"></div>
+      <div class="field"><label>p̂ estimada (0.5 = conservador)</label><input type="number" id="np-phat" step="any" value="0.5" min="0.01" max="0.99"></div>
+      <div class="field"><label>Nivel de confianza (%)</label><input type="number" id="np-conf" value="95" min="50" max="99.9" step="0.5"></div>
+      <div class="field"><label>Población N (opcional)</label><input type="number" id="np-N" min="1" placeholder="∞"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="np-calc">Calcular n</button>
+      <button class="btn btn-ghost ej" data-t="np1">Ejemplo</button>
+    </div>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<div id="result" class="card hidden">
+  <h2 id="res-title">Resultado</h2>
+  <div id="res-viz"></div>
+  <div class="stat-grid" id="res-stats" style="margin-top:.8rem"></div>
+  <div id="res-extra" style="margin-top:.8rem"></div>
+  <div class="card" style="border-left:4px solid var(--purple);margin-top:1rem">
+    <h2 style="font-size:1rem">🧭 Interpretación</h2>
+    <ul id="res-interp" style="margin:0;padding-left:1.2rem;line-height:1.75"></ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+function msg(h,c='alert-info'){ $('msg').innerHTML=h?`<div class="alert ${c}">${h}</div>`:''; }
+function stat(k,v,u=''){return `<div class="stat"><div class="k">${k}</div><div class="v">${typeof v==='number'?PSU.fmt(v):v}</div>${u?`<div class="u">${u}</div>`:''}</div>`;}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  document.querySelectorAll('.mode').forEach(m=>m.style.display='none');
+  $('m-'+b.dataset.m).style.display=''; $('result').classList.add('hidden'); msg('');
+}));
+
+/* ---------- Poblar columnas si hay dataset ---------- */
+function fillCols(){
+  if(PronoStat.has()){
+    PSU.fillColumnSelect($('med-col'),PronoStat.numericColumns());
+    PSU.fillColumnSelect($('prop-col'),PronoStat.columnNames());
+  }
+}
+fillCols();
+
+/* ---------- Toggles de origen / sigma ---------- */
+function medToggle(){
+  const datos=$('med-origen').value==='datos', sk=$('med-sigma-known').checked;
+  document.querySelectorAll('.med-datos').forEach(e=>e.style.display=datos?'':'none');
+  document.querySelectorAll('.med-resumen').forEach(e=>e.style.display=datos?'none':'');
+  document.querySelector('.med-sigma').style.display=sk?'':'none';
+  // s sólo si sigma desconocida y modo resumen
+  document.querySelector('.med-s').style.display=(!sk && !datos)?'':'none';
+}
+$('med-origen').addEventListener('change',medToggle);
+$('med-sigma-known').addEventListener('change',medToggle);
+medToggle();
+function propToggle(){
+  const datos=$('prop-origen').value==='datos';
+  document.querySelectorAll('.prop-datos').forEach(e=>e.style.display=datos?'':'none');
+  document.querySelectorAll('.prop-resumen').forEach(e=>e.style.display=datos?'none':'');
+}
+$('prop-origen').addEventListener('change',propToggle);
+propToggle();
+
+/* ---------- Visualización del intervalo (media/proporción) ---------- */
+function drawInterval(center,lo,hi,unidad=''){
+  const span=(hi-lo)||1, pad=(hi-lo)*0.5||1;
+  const a=lo-pad, b=hi+pad; const X=v=>((v-a)/(b-a))*100;
+  return `<div style="position:relative;height:64px;margin:.4rem 0 1rem">
+    <div style="position:absolute;top:34px;left:0;right:0;height:2px;background:#cbd5e1"></div>
+    <div style="position:absolute;top:26px;height:18px;background:#a7f3d0;border:1px solid #0f766e;border-radius:4px;left:${X(lo)}%;width:${X(hi)-X(lo)}%"></div>
+    <div style="position:absolute;top:20px;height:30px;width:2px;background:#6d28d9;left:${X(center)}%"></div>
+    <div style="position:absolute;top:2px;left:${X(lo)}%;transform:translateX(-50%);font-size:.72rem;color:#0f766e;font-weight:700">${PSU.fmt(lo)}${unidad}</div>
+    <div style="position:absolute;top:2px;left:${X(center)}%;transform:translateX(-50%);font-size:.72rem;color:#6d28d9;font-weight:700">${PSU.fmt(center)}${unidad}</div>
+    <div style="position:absolute;top:2px;left:${X(hi)}%;transform:translateX(-50%);font-size:.72rem;color:#0f766e;font-weight:700">${PSU.fmt(hi)}${unidad}</div>
+    <div style="position:absolute;bottom:2px;left:${X(center)}%;transform:translateX(-50%);font-size:.68rem;color:#64748b">estimación puntual</div>
+  </div>`;
+}
+function showInterp(list){ $('res-interp').innerHTML=(list||[]).map(t=>`<li>${t}</li>`).join(''); }
+
+/* ---------- IC MEDIA ---------- */
+$('med-calc').addEventListener('click', async ()=>{
+  const conf=parseFloat($('med-conf').value)||95, sk=$('med-sigma-known').checked;
+  const N=$('med-N').value?parseFloat($('med-N').value):null;
+  let payload={conf,N};
+  if($('med-origen').value==='datos'){
+    if(!PronoStat.has()){ msg('No hay dataset cargado. Usa "Ingresar resumen" o carga datos en el módulo 1.','alert-warn'); return; }
+    payload.values=PronoStat.numericValues($('med-col').value);
+    if(sk){ if(!$('med-sigma').value){ msg('Ingresa σ.','alert-warn'); return; } payload.sigma=parseFloat($('med-sigma').value); }
+  } else {
+    payload.media=parseFloat($('med-xbar').value); payload.n=parseInt($('med-n').value);
+    if(sk) payload.sigma=parseFloat($('med-sigma').value); else payload.s=parseFloat($('med-s').value);
+  }
+  msg('Calculando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/inferencia/api/ic-media',payload); msg('');
+    $('result').classList.remove('hidden'); $('res-title').textContent='Intervalo de confianza para la media';
+    $('res-viz').innerHTML=drawInterval(r.media,r.ic[0],r.ic[1]);
+    $('res-stats').innerHTML=stat('Media x̄',r.media)+ (r.s!=null?stat('Desv. s',r.s):'') + (r.sigma!=null?stat('σ',r.sigma):'')+
+      stat('n',r.n)+ (r.gl!=null?stat('gl',r.gl):'') + stat('Valor crítico',r.valor_critico)+
+      stat('Error estándar',r.error_std)+stat('Margen ±',r.margen)+
+      stat('Límite inferior',r.ic[0])+stat('Límite superior',r.ic[1]);
+    $('res-extra').innerHTML=`<span class="pill pill-b">${r.metodo}</span>`;
+    showInterp(r.interpretacion);
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- IC PROPORCIÓN ---------- */
+$('prop-calc').addEventListener('click', async ()=>{
+  const conf=parseFloat($('prop-conf').value)||95, N=$('prop-N').value?parseFloat($('prop-N').value):null;
+  let x,n;
+  if($('prop-origen').value==='datos'){
+    if(!PronoStat.has()){ msg('No hay dataset cargado.','alert-warn'); return; }
+    const col=$('prop-col').value, cond=$('prop-cond').value, val=$('prop-val').value;
+    const vals=PronoStat.values(col).filter(v=>v!==null&&v!=='');
+    n=vals.length;
+    x=vals.filter(v=>{ const nv=parseFloat(v),tv=parseFloat(val);
+      if(cond==='eq') return String(v)===String(val);
+      if(cond==='gt') return nv>tv; return nv<tv; }).length;
+    if(!n){ msg('La columna no tiene datos válidos.','alert-warn'); return; }
+  } else {
+    x=parseInt($('prop-x').value); n=parseInt($('prop-n').value);
+  }
+  msg('Calculando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/inferencia/api/ic-prop',{x,n,conf,N}); msg('');
+    $('result').classList.remove('hidden'); $('res-title').textContent='Intervalo de confianza para la proporción';
+    $('res-viz').innerHTML=drawInterval(r.phat,r.ic_wilson[0],r.ic_wilson[1]);
+    $('res-stats').innerHTML=stat('p̂',r.phat)+stat('x (éxitos)',r.x!=null?r.x:'—')+stat('n',r.n)+
+      stat('z',r.z)+stat('Margen ± (Wald)',r.margen)+stat('Regla n·p̂≥5',r.regla_np?'sí ✓':'no ✗');
+    $('res-extra').innerHTML=`<div class="table-wrap"><table>
+      <thead><tr><th>Método</th><th>Límite inferior</th><th>Límite superior</th></tr></thead><tbody>
+      <tr class="best-row"><td><b>Wilson (recomendado)</b></td><td class="num">${(r.ic_wilson[0]*100).toFixed(2)}%</td><td class="num">${(r.ic_wilson[1]*100).toFixed(2)}%</td></tr>
+      <tr><td>Wald (tradicional)</td><td class="num">${(r.ic_wald[0]*100).toFixed(2)}%</td><td class="num">${(r.ic_wald[1]*100).toFixed(2)}%</td></tr>
+      <tr><td>Agresti-Coull</td><td class="num">${(r.ic_agresti[0]*100).toFixed(2)}%</td><td class="num">${(r.ic_agresti[1]*100).toFixed(2)}%</td></tr>
+      </tbody></table></div>`;
+    showInterp(r.interpretacion);
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- n MEDIA ---------- */
+$('nm-calc').addEventListener('click', async ()=>{
+  const payload={E:parseFloat($('nm-E').value),sigma:parseFloat($('nm-sigma').value),
+    conf:parseFloat($('nm-conf').value)||95,N:$('nm-N').value?parseFloat($('nm-N').value):null};
+  msg('Calculando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/inferencia/api/n-media',payload); msg('');
+    $('result').classList.remove('hidden'); $('res-title').textContent='Tamaño de muestra para la media';
+    $('res-viz').innerHTML='';
+    $('res-stats').innerHTML=stat('n requerido',r.n)+ (r.n_finita?stat('n (población finita)',r.n_finita):'')+
+      stat('n exacto (n₀)',r.n0)+stat('z',r.z)+stat('E',r.E)+stat('σ',r.sigma);
+    $('res-extra').innerHTML='';
+    showInterp(r.interpretacion);
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- n PROPORCIÓN ---------- */
+$('np-calc').addEventListener('click', async ()=>{
+  const payload={E:parseFloat($('np-E').value),phat:parseFloat($('np-phat').value)||0.5,
+    conf:parseFloat($('np-conf').value)||95,N:$('np-N').value?parseFloat($('np-N').value):null};
+  msg('Calculando… <span class="spinner"></span>');
+  try{
+    const r=await PSU.postJSON('/inferencia/api/n-prop',payload); msg('');
+    $('result').classList.remove('hidden'); $('res-title').textContent='Tamaño de muestra para la proporción';
+    $('res-viz').innerHTML='';
+    $('res-stats').innerHTML=stat('n requerido',r.n)+ (r.n_finita?stat('n (población finita)',r.n_finita):'')+
+      stat('n exacto (n₀)',r.n0)+stat('z',r.z)+stat('E',r.E)+stat('p̂',r.phat);
+    $('res-extra').innerHTML='';
+    showInterp(r.interpretacion);
+    $('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){ msg(err.message,'alert-err'); }
+});
+
+/* ---------- Ejercicios resueltos (rellenan los campos) ---------- */
+const EJ={
+  med1:()=>{ $('med-origen').value='resumen'; $('med-sigma-known').checked=true; medToggle();
+    $('med-xbar').value=498;$('med-n').value=40;$('med-sigma').value=15;$('med-conf').value=95;
+    msg('Ejemplo cargado: una embotelladora con σ=15 ml conocida; muestra n=40, x̄=498 ml. Pulsa "Calcular intervalo".','alert-ok'); },
+  med2:()=>{ $('med-origen').value='resumen'; $('med-sigma-known').checked=false; medToggle();
+    $('med-xbar').value=8.4;$('med-n').value=25;$('med-s').value=2.1;$('med-conf').value=95;
+    msg('Ejemplo: tiempos de atención (min) con σ desconocida; n=25, x̄=8,4, s=2,1. Pulsa "Calcular intervalo".','alert-ok'); },
+  prop1:()=>{ $('prop-origen').value='resumen'; propToggle(); $('prop-x').value=336;$('prop-n').value=600;$('prop-conf').value=95;
+    msg('Ejemplo: encuesta a 600 personas, 336 aprueban. Pulsa "Calcular intervalo".','alert-ok'); },
+  nm1:()=>{ $('nm-E').value=2000;$('nm-sigma').value=18000;$('nm-conf').value=95;
+    msg('Ejemplo: estimar el gasto medio con error ±$2.000, σ≈$18.000, 95%. Pulsa "Calcular n".','alert-ok'); },
+  np1:()=>{ $('np-E').value=0.03;$('np-phat').value=0.5;$('np-conf').value=95;
+    msg('Ejemplo: estimar una proporción con error ±3%, sin información previa, 95%. Pulsa "Calcular n".','alert-ok'); },
+};
+document.querySelectorAll('.ej').forEach(b=>b.addEventListener('click',()=>EJ[b.dataset.t]()));
+</script>
+{% endblock %}

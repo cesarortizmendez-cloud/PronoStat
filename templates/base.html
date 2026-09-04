@@ -64,12 +64,16 @@ a{color:var(--teal)}
   border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem}
 .topbar-title{font-weight:700;font-size:1.05rem;white-space:nowrap}
 .topbar-right{display:flex;align-items:center;gap:1rem}
-.topbar-ds{margin-left:1rem;margin-right:auto;display:flex;align-items:center;gap:.35rem;
+.topbar-ds{margin-left:1rem;margin-right:auto;display:flex;align-items:center;gap:.4rem;
   font-size:.8rem;background:var(--blue-l);color:#1e40af;border:1px solid #93c5fd;
-  border-radius:999px;padding:.28rem .8rem;max-width:42ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  border-radius:999px;padding:.24rem .35rem .24rem .8rem;max-width:56ch;white-space:nowrap}
+.topbar-ds .tds-info{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .topbar-ds .tds-lbl{color:#3b62c4;font-weight:600}
-.topbar-ds .tds-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.topbar-ds .tds-name{font-weight:700}
 .topbar-ds .tds-n{color:#3b62c4}
+.topbar-ds .tds-btn{flex:none;font-size:.72rem;font-weight:700;color:#fff;background:var(--teal);
+  border-radius:999px;padding:.22rem .7rem;text-decoration:none;white-space:nowrap;transition:background .15s}
+.topbar-ds .tds-btn:hover{background:var(--teal-d)}
 .author{font-size:.78rem;color:var(--muted)}
 .btn-install{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-weight:600;cursor:pointer;font-size:.82rem}
 .content{flex:1;padding:1.6rem;max-width:1180px;width:100%;margin:0 auto}
@@ -209,8 +213,9 @@ td.num{font-family:var(--mono)}
   .grid-2,.grid-3,.chart-grid,.roadmap-cols{grid-template-columns:1fr}
   .author{display:none}
   .topbar-title{font-size:.9rem}
-  .topbar-ds{margin-left:.5rem;max-width:16ch;font-size:.72rem;padding:.2rem .55rem}
+  .topbar-ds{margin-left:.5rem;max-width:56vw;font-size:.72rem;padding:.15rem .3rem .15rem .6rem}
   .topbar-ds .tds-lbl,.topbar-ds .tds-n{display:none}
+  .topbar-ds .tds-btn{font-size:.68rem;padding:.2rem .55rem}
 }
 
 {% endverbatim %}</style>
@@ -260,7 +265,10 @@ td.num{font-family:var(--mono)}
   <main class="main">
     <header class="topbar">
       <div class="topbar-title">{% block topbar %}PronoStat{% endblock %}</div>
-      <div class="topbar-ds" id="topbar-ds" hidden></div>
+      <div class="topbar-ds" id="topbar-ds" hidden>
+        <span class="tds-info"><span class="tds-lbl">Base activa:</span> <b class="tds-name"></b> <span class="tds-n"></span></span>
+        <a class="tds-btn" href="/datos/" title="Cargar o cambiar la base de datos activa">Cambiar</a>
+      </div>
       <div class="topbar-right">
         <a class="author" href="https://cv-cesarortiz.vercel.app" target="_blank" rel="noopener">Dr. César Ortiz Méndez</a>
         <button id="pwa-install" class="btn-install" hidden>Instalar</button>
@@ -330,13 +338,12 @@ td.num{font-family:var(--mono)}
       if (top) {
         if (d) {
           top.hidden = false;
-          top.innerHTML = '<span class="tds-lbl">Base activa:</span> <b class="tds-name"></b> <span class="tds-n"></span>';
-          top.querySelector('.tds-name').textContent = d.source || 'dataset';
-          top.querySelector('.tds-n').textContent = '· ' + d.rows.length + ' filas';
-          top.title = (d.source || 'dataset') + (d.sheet ? ' · ' + d.sheet : '') + ' · ' + d.rows.length + ' filas · ' + d.columns.length + ' campos';
+          const nm = top.querySelector('.tds-name'); if (nm) nm.textContent = d.source || 'dataset';
+          const nn = top.querySelector('.tds-n'); if (nn) nn.textContent = '· ' + d.rows.length + ' filas';
+          const info = top.querySelector('.tds-info');
+          if (info) info.title = (d.source || 'dataset') + (d.sheet ? ' · ' + d.sheet : '') + ' · ' + d.rows.length + ' filas · ' + d.columns.length + ' campos';
         } else {
           top.hidden = true;
-          top.innerHTML = '';
         }
       }
     }

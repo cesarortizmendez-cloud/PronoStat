@@ -167,6 +167,12 @@ td.num{font-family:var(--mono)}
 .chart-box.tall{height:420px}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 
+/* ---------- Descarga de figuras (formato de revista) ---------- */
+.fig-toolbar{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-top:.6rem}
+.fig-toolbar .figlbl{font-size:.75rem;color:var(--muted);font-weight:600;margin-right:.1rem}
+.fig-toolbar .figbtn{padding:.32rem .7rem;font-size:.76rem;border-radius:8px;line-height:1}
+.fig-toolbar .figbtn:disabled{opacity:.45;cursor:not-allowed}
+
 /* ---------- Utilidades ---------- */
 .hidden{display:none!important}
 .muted{color:var(--muted)}
@@ -424,6 +430,247 @@ td.num{font-family:var(--mono)}
   global.PronoStat = Store;
   global.PSU = Util;
   document.addEventListener('DOMContentLoaded', () => Store.refreshBadge());
+})(window);
+
+{% endverbatim %}</script>
+  <script>{% verbatim %}
+/* ===========================================================================
+   PronoStat — PSFIG · Exportación de figuras en formato de revista científica
+   Genera, a partir de los gráficos ya renderizados:
+     · SVG vectorial editable (Illustrator/Inkscape) — para Chart.js y Plotly 2D
+     · PNG de alta resolución (~300 dpi) — rasterizado del SVG o vía Plotly
+     · CSV con los datos de la figura (reproducibilidad)
+   Tipografía Arial/Helvetica, fondo blanco y ejes negros, siguiendo los
+   requisitos habituales de revistas (Elsevier, Springer, IEEE, PLOS…).
+   =========================================================================== */
+(function (global) {
+  const FONT = 'Arial, Helvetica, sans-serif';
+  const AX = '#000000', GRID = '#e5e7eb', TXT = '#111111';
+  const PNG_SCALE = 3;   // ~300+ dpi para tamaños de figura habituales
+
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function num(v){ return (typeof v==='number' && isFinite(v)); }
+  function colAt(c,i,def){ if(c==null) return def; return Array.isArray(c) ? (c[i]!=null?c[i]:def) : c; }
+  function slug(s){ return String(s==null?'figura':s).trim().replace(/[^\w.\-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60) || 'figura'; }
+
+  function saveBlob(name, blob){
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  }
+  function saveText(name, text, mime){
+    saveBlob(name, new Blob([text], {type:(mime||'text/plain')+';charset=utf-8'}));
+  }
+  function toCSV(matrix){
+    return matrix.map(r=>r.map(c=>{
+      c=(c==null)?'':String(c);
+      return /[",\n\r;]/.test(c) ? '"'+c.replace(/"/g,'""')+'"' : c;
+    }).join(',')).join('\r\n');
+  }
+
+  /* ---- Chart.js (canvas) -> SVG vectorial, leyendo la geometría renderizada ---- */
+  function chartToSVG(chart){
+    const W=chart.width, H=chart.height, ca=chart.chartArea;
+    const S=[];
+    S.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}">`);
+    S.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`);
+    const scales=chart.scales||{};
+    Object.keys(scales).forEach(id=>{
+      const sc=scales[id]; if(!sc||sc.axis==null) return;
+      const ticks=sc.ticks||[];
+      const at=sc.options && sc.options.title;
+      if(sc.axis==='y'){
+        const right=(sc.position==='right');
+        const ax = right ? ca.right : ca.left;
+        ticks.forEach((t,i)=>{
+          let py; try{ py=sc.getPixelForTick(i); }catch(e){ py=sc.getPixelForValue(t.value); }
+          if(!num(py)) return;
+          if(!right) S.push(`<line x1="${ca.left}" y1="${py}" x2="${ca.right}" y2="${py}" stroke="${GRID}" stroke-width="1"/>`);
+          const lbl=Array.isArray(t.label)?t.label.join(' '):t.label;
+          S.push(`<text x="${right?ax+6:ax-6}" y="${py+3.6}" font-size="11" fill="${TXT}" text-anchor="${right?'start':'end'}">${esc(lbl)}</text>`);
+        });
+        S.push(`<line x1="${ax}" y1="${ca.top}" x2="${ax}" y2="${ca.bottom}" stroke="${AX}" stroke-width="1"/>`);
+        if(at && at.display && at.text){
+          const tx=right?(W-11):13, cy=(ca.top+ca.bottom)/2;
+          S.push(`<text x="${tx}" y="${cy}" font-size="12" fill="${TXT}" text-anchor="middle" transform="rotate(${right?90:-90} ${tx} ${cy})">${esc(at.text)}</text>`);
+        }
+      } else if(sc.axis==='x'){
+        const ay=ca.bottom, many=ticks.length>8;
+        ticks.forEach((t,i)=>{
+          let px; try{ px=sc.getPixelForTick(i); }catch(e){ px=sc.getPixelForValue(t.value); }
+          if(!num(px)) return;
+          S.push(`<line x1="${px}" y1="${ca.top}" x2="${px}" y2="${ca.bottom}" stroke="${GRID}" stroke-width="1"/>`);
+          const lbl=Array.isArray(t.label)?t.label.join(' '):t.label;
+          if(many) S.push(`<text x="${px}" y="${ay+13}" font-size="10" fill="${TXT}" text-anchor="end" transform="rotate(-40 ${px} ${ay+13})">${esc(lbl)}</text>`);
+          else S.push(`<text x="${px}" y="${ay+15}" font-size="11" fill="${TXT}" text-anchor="middle">${esc(lbl)}</text>`);
+        });
+        S.push(`<line x1="${ca.left}" y1="${ay}" x2="${ca.right}" y2="${ay}" stroke="${AX}" stroke-width="1"/>`);
+        if(at && at.display && at.text)
+          S.push(`<text x="${(ca.left+ca.right)/2}" y="${H-6}" font-size="12" fill="${TXT}" text-anchor="middle">${esc(at.text)}</text>`);
+      }
+    });
+    S.push(`<clipPath id="psfig-ca"><rect x="${ca.left}" y="${ca.top}" width="${ca.right-ca.left}" height="${ca.bottom-ca.top}"/></clipPath>`);
+    S.push(`<g clip-path="url(#psfig-ca)">`);
+    (chart.data.datasets||[]).forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di); if(!meta||meta.hidden) return;
+      const els=meta.data||[];
+      const type=meta.type||ds.type||(chart.config&&chart.config.type);
+      // barras
+      els.forEach((el,pi)=>{
+        if(!el || el.skip) return;
+        if(('base' in el) && typeof el.width==='number'){
+          const bw=el.width, x=el.x-bw/2, top=Math.min(el.y,el.base), h=Math.abs(el.base-el.y);
+          S.push(`<rect x="${x}" y="${top}" width="${bw}" height="${h}" fill="${colAt(ds.backgroundColor,pi,'#1e3a8a')}" stroke="${colAt(ds.borderColor,pi,'#1e3a8a')}" stroke-width="${ds.borderWidth||1}"/>`);
+        }
+      });
+      // líneas
+      const isLine=(type==='line')||(ds.showLine && type!=='bar');
+      if(isLine){
+        const pts=els.filter(e=>e && !e.skip && num(e.x) && num(e.y));
+        if(pts.length){
+          let d='';
+          if(ds.stepped) pts.forEach((p,k)=>{ d+= k===0 ? `M${p.x},${p.y}` : `H${p.x}V${p.y}`; });
+          else pts.forEach((p,k)=>{ d+=(k===0?'M':'L')+p.x+','+p.y; });
+          const bc=colAt(ds.borderColor,0,'#1e3a8a'), bw=ds.borderWidth||2;
+          const dash=(Array.isArray(ds.borderDash)&&ds.borderDash.length)?` stroke-dasharray="${ds.borderDash.join(',')}"`:'';
+          if(ds.fill){
+            const bg=colAt(ds.backgroundColor,0,bc);
+            S.push(`<path d="${d}L${pts[pts.length-1].x},${ca.bottom}L${pts[0].x},${ca.bottom}Z" fill="${bg}" stroke="none"/>`);
+          }
+          S.push(`<path d="${d}" fill="none" stroke="${bc}" stroke-width="${bw}" stroke-linejoin="round"${dash}/>`);
+        }
+      }
+      // puntos (dispersión, o línea con pointRadius>0)
+      const pr=ds.pointRadius;
+      const wantPts=(type==='scatter') || (isLine && (Array.isArray(pr) ? pr.some(r=>r>0) : pr>0));
+      if(wantPts){
+        els.forEach((el,pi)=>{
+          if(!el || el.skip || !num(el.x) || !num(el.y)) return;
+          let r=Array.isArray(pr)?(pr[pi]||0):(pr!=null?pr:3);
+          if(type==='scatter' && !(r>0)) r=3;
+          if(!(r>0)) return;
+          const bg=colAt(ds.backgroundColor,pi,'#1e3a8a'), st=colAt(ds.borderColor,pi,bg);
+          if(ds.pointStyle==='rectRot')
+            S.push(`<path d="M${el.x},${el.y-r}L${el.x+r},${el.y}L${el.x},${el.y+r}L${el.x-r},${el.y}Z" fill="${bg}" stroke="${st}" stroke-width="1"/>`);
+          else
+            S.push(`<circle cx="${el.x}" cy="${el.y}" r="${r}" fill="${bg}" stroke="${st}" stroke-width="0.6"/>`);
+        });
+      }
+    });
+    S.push(`</g>`);
+    const ti=chart.options && chart.options.plugins && chart.options.plugins.title;
+    if(ti && ti.display && ti.text)
+      S.push(`<text x="${W/2}" y="17" font-size="13" font-weight="700" fill="${TXT}" text-anchor="middle">${esc(Array.isArray(ti.text)?ti.text.join(' '):ti.text)}</text>`);
+    const leg=chart.options && chart.options.plugins && chart.options.plugins.legend;
+    const items=[];
+    (chart.data.datasets||[]).forEach((ds,di)=>{ const m=chart.getDatasetMeta(di); if(m&&m.hidden) return; if(ds.label) items.push({t:ds.label,c:colAt(ds.borderColor,0,colAt(ds.backgroundColor,0,'#1e3a8a'))}); });
+    const showLeg = (!leg || leg.display!==false) && (items.length>1 || (leg && leg.display===true && items.length));
+    if(showLeg){
+      const ly=(ti&&ti.display&&ti.text)?32:15;
+      S.push(`<g font-size="11" fill="${TXT}">`);
+      let cx=ca.left;
+      items.forEach(it=>{ S.push(`<rect x="${cx}" y="${ly-8}" width="11" height="11" fill="${it.c}"/>`); S.push(`<text x="${cx+15}" y="${ly+1}">${esc(it.t)}</text>`); cx+=15 + String(it.t).length*6.3 + 18; });
+      S.push(`</g>`);
+    }
+    S.push(`</svg>`);
+    return S.join('');
+  }
+
+  function chartToCSV(chart){
+    const dss=chart.data.datasets||[], labels=chart.data.labels;
+    const head=['x'].concat(dss.map((d,i)=>d.label||('serie'+(i+1))));
+    const n=Math.max(labels?labels.length:0, ...dss.map(d=>d.data.length), 0);
+    const rows=[head];
+    for(let i=0;i<n;i++){
+      let xv=(labels && labels[i]!=null)?labels[i]:'';
+      const cells=dss.map(d=>{ const v=d.data[i]; if(v && typeof v==='object'){ if(xv===''&&v.x!=null)xv=v.x; return v.y; } return v; });
+      rows.push([xv].concat(cells));
+    }
+    return toCSV(rows);
+  }
+
+  /* ---- Nodo <svg> ya dibujado (boxplot/violín) -> SVG autónomo ---- */
+  function svgNodeToString(node){
+    const clone=node.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    let w,h; const vb=clone.getAttribute('viewBox');
+    if(vb){ const p=vb.split(/[\s,]+/).map(Number); w=p[2]; h=p[3]; }
+    w=w||node.clientWidth||760; h=h||node.clientHeight||380;
+    clone.setAttribute('width',w); clone.setAttribute('height',h);
+    clone.removeAttribute('style'); clone.setAttribute('font-family',FONT);
+    const NS='http://www.w3.org/2000/svg';
+    const bg=document.createElementNS(NS,'rect');
+    bg.setAttribute('x',0); bg.setAttribute('y',0); bg.setAttribute('width',w); bg.setAttribute('height',h); bg.setAttribute('fill','#ffffff');
+    clone.insertBefore(bg, clone.firstChild);
+    return { svg:new XMLSerializer().serializeToString(clone), w, h };
+  }
+
+  /* ---- SVG -> PNG de alta resolución ---- */
+  function svgToPNG(svg, w, h, scale){
+    scale=scale||PNG_SCALE;
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      const url=URL.createObjectURL(new Blob([svg], {type:'image/svg+xml;charset=utf-8'}));
+      img.onload=()=>{
+        const c=document.createElement('canvas'); c.width=Math.round(w*scale); c.height=Math.round(h*scale);
+        const ctx=c.getContext('2d'); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,c.width,c.height);
+        ctx.setTransform(scale,0,0,scale,0,0); ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        c.toBlob(b=>b?resolve(b):reject(new Error('canvas vacío')),'image/png');
+      };
+      img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('no se pudo rasterizar el SVG')); };
+      img.src=url;
+    });
+  }
+
+  /* ---- Plotly (2D vectorial / 3D alta resolución) ---- */
+  function plotlyDownload(el, fmt, filename, scale){
+    if(!global.Plotly) throw new Error('la librería de gráficos aún no está cargada');
+    const w=el.clientWidth||900, h=el.clientHeight||520;
+    return global.Plotly.downloadImage(el, {format:fmt, filename:filename, width:w, height:h, scale:scale||(fmt==='png'?PNG_SCALE:1)});
+  }
+
+  /* ---- Barra de descarga reutilizable ----
+     get() debe devolver, en el momento del clic:
+       {basename, kind:'chart'|'svgnode'|'plotly', chart?, node?, el?, csv?} */
+  function toolbar(host, get){
+    if(!host) return;
+    const bar=document.createElement('div'); bar.className='fig-toolbar';
+    bar.innerHTML='<span class="figlbl">Descargar figura:</span>'+
+      '<button type="button" class="btn btn-ghost figbtn" data-f="svg">SVG vectorial</button>'+
+      '<button type="button" class="btn btn-ghost figbtn" data-f="png">PNG 300 dpi</button>'+
+      '<button type="button" class="btn btn-ghost figbtn" data-f="csv">Datos (CSV)</button>';
+    host.appendChild(bar);
+    bar.addEventListener('click', async (ev)=>{
+      const b=ev.target.closest('.figbtn'); if(!b) return;
+      let st=null; try{ st=get(); }catch(e){ st=null; }
+      if(!st){ return; }
+      const base=slug(st.basename);
+      try{
+        if(b.dataset.f==='csv'){
+          if(!st.csv){ alert('Esta figura no tiene una tabla de datos asociada.'); return; }
+          saveText(base+'.csv', st.csv, 'text/csv'); return;
+        }
+        if(st.kind==='chart'){
+          if(!st.chart) return;
+          const svg=chartToSVG(st.chart);
+          if(b.dataset.f==='svg') saveText(base+'.svg', svg, 'image/svg+xml');
+          else saveBlob(base+'.png', await svgToPNG(svg, st.chart.width, st.chart.height, PNG_SCALE));
+        } else if(st.kind==='svgnode'){
+          if(!st.node) return;
+          const r=svgNodeToString(st.node);
+          if(b.dataset.f==='svg') saveText(base+'.svg', r.svg, 'image/svg+xml');
+          else saveBlob(base+'.png', await svgToPNG(r.svg, r.w, r.h, PNG_SCALE));
+        } else if(st.kind==='plotly'){
+          if(!st.el) return;
+          plotlyDownload(st.el, b.dataset.f==='svg'?'svg':'png', base, b.dataset.f==='svg'?1:PNG_SCALE);
+        }
+      }catch(e){ alert('No se pudo generar la descarga: '+e.message); }
+    });
+    return bar;
+  }
+
+  global.PSFIG = { chartToSVG, chartToCSV, svgNodeToString, svgToPNG, plotlyDownload, toolbar, saveText, saveBlob, toCSV, slug };
 })(window);
 
 {% endverbatim %}</script>

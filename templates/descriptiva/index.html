@@ -28,6 +28,7 @@
   <p><b>¿Qué hace este módulo?</b> Resume una variable con números y gráficos, y arma tablas de frecuencia. Sirve para conocer el centro, la dispersión, la forma y los valores atípicos de los datos.</p>
   <p><b>¿Cómo se usa?</b> Elige una variable numérica (y, opcionalmente, una variable de segmentación para comparar grupos) y pulsa «Analizar». Explora los distintos gráficos con los botones. Abajo, en «Tablas de frecuencia y análisis de relaciones», tienes tres pestañas: <b>Monovariada</b> (tabla de frecuencias con histograma y ojiva), <b>Bivariada</b> (doble entrada con gráficos 3D y dispersión, pudiendo definir el nº de intervalos de X e Y) y <b>Multivariada</b> (correlaciones y matriz de dispersión entre varias variables).</p>
   <p><b>¿Cómo se interpretan los resultados?</b> Si media ≈ mediana la distribución es simétrica; si difieren, hay asimetría. El CV mide la dispersión relativa. El boxplot y los puntos rojos muestran atípicos. El Q-Q normal evalúa la normalidad (puntos sobre la recta). Con segmentación, la ANOVA indica si las medias de los grupos difieren (p &lt; 0,05).</p>
+  <p><b>Descarga para publicaciones:</b> bajo cada gráfico encontrarás los botones «Descargar figura». <b>SVG vectorial</b> es un formato editable (se abre en Illustrator, Inkscape o CorelDRAW) y es el preferido por la mayoría de revistas científicas para gráficos de líneas; <b>PNG 300 dpi</b> es un mapa de bits de alta resolución apto para impresión; <b>Datos (CSV)</b> exporta los valores de la figura para reproducirla. Las figuras usan tipografía sans-serif, fondo blanco y ejes negros. Nota: los gráficos <b>3D</b> (columnas y superficie) se exportan como imagen de alta resolución, mientras que los 2D (dispersión, mapa de correlaciones, histograma, ojiva, etc.) se exportan en SVG vectorial totalmente editable.</p>
   <p><b>Símbolos:</b> n tamaño · x̄ media · Md mediana · s desviación · s² varianza · CV = (s/x̄)·100 · Q1,Q3 cuartiles · IQR = Q3−Q1 · asimetría (0 simétrica) · curtosis (0 ≈ normal) · KDE densidad · ECDF acumulada empírica.</p>
   </div>
 </details>
@@ -54,10 +55,12 @@
         <div>
           <div class="section-title">Histograma por clases (frecuencia fᵢ)</div>
           <div class="chart-box"><canvas id="tfHist"></canvas></div>
+          <div id="fig-tfhist"></div>
         </div>
         <div>
           <div class="section-title">Ojiva (frecuencia acumulada Fᵢ↑)</div>
           <div class="chart-box"><canvas id="tfOjiva"></canvas></div>
+          <div id="fig-tfojiva"></div>
         </div>
       </div>
       <p class="small muted" style="margin-top:.4rem">El histograma usa exactamente las clases de la tabla (sin curva de ajuste). La ojiva acumula la frecuencia y se dibuja en el límite superior de cada clase.</p>
@@ -85,6 +88,7 @@
       </div>
       <div id="td-note" class="alert alert-info small"></div>
       <div id="td-plot" style="width:100%;height:470px"></div>
+      <div id="fig-td"></div>
     </div>
   </div>
 
@@ -101,6 +105,7 @@
         <button class="btn btn-ghost mvchart" data-c="splom">Matriz de dispersión</button>
       </div>
       <div id="mv-plot" style="width:100%;height:540px"></div>
+      <div id="fig-mv"></div>
     </div>
   </div>
 </div>
@@ -164,6 +169,7 @@
     <div id="chart-note" class="alert alert-info small"></div>
     <div class="chart-box tall"><canvas id="mainChart"></canvas></div>
     <div id="svgArea" class="hidden" style="overflow-x:auto"></div>
+    <div id="fig-adv"></div>
   </div>
 </div>
 {% endblock %}
@@ -173,6 +179,7 @@
 const $=id=>document.getElementById(id);
 const PAL=['#1e3a8a','#4338ca','#b45309','#1d4ed8','#be185d','#15803d','#0891b2','#a16207','#7c3aed','#dc2626','#0d9488','#4f46e5'];
 let mainChart=null, LAST=null, LASTCOL='', SEG='', CURTAB='hist';
+let CURTD='cols3d', CURMV='heat';   // tipo de gráfico activo (bivariado / multivariado)
 
 const NOTES={
   hist:'Muestra la <b>forma</b> de la distribución. La curva morada es la densidad estimada (KDE) y la naranja es la <b>normal teórica</b> con la misma media y desviación: si difieren mucho, los datos no son normales. Segmentado: densidades superpuestas por grupo.',
@@ -601,6 +608,7 @@ function bars3d(M,xcats,ycats){
 
 async function drawDobleChart(type){
   if(!LASTDOBLE) return;
+  CURTD=type;
   try{ await ensurePlotly(); }catch(e){ $('td-note').innerHTML='<b>[gráficos no disponibles]</b> '+e.message; return; }
   const d=LASTDOBLE, M=d.r.matriz, xcats=d.r.xcats, ycats=d.r.ycats, el=$('td-plot');
   if(type==='cols3d'){
@@ -643,6 +651,7 @@ $('mv-run').addEventListener('click', async ()=>{
 });
 async function drawMultiChart(type){
   if(!LASTMV) return;
+  CURMV=type;
   try{ await ensurePlotly(); }catch(e){ $('mv-plot').innerHTML='<b>[gráficos no disponibles]</b> '+e.message; return; }
   const r=LASTMV.r, data=LASTMV.data, cols=r.cols, el=$('mv-plot');
   if(type==='heat'){
@@ -659,5 +668,72 @@ async function drawMultiChart(type){
 document.querySelectorAll('.mvchart').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.mvchart').forEach(x=>x.classList.remove('active')); b.classList.add('active'); drawMultiChart(b.dataset.c);
 }));
+
+/* ===================== Descarga de figuras (formato de revista) ===================== */
+const SL = s=>PSFIG.slug(s);
+
+/* CSV del boxplot / violín: resumen de cinco números por grupo. */
+function boxCSV(){
+  const items = (CURTAB==='violin')
+    ? violinData().map(it=>({name:it.name,b:it.b}))
+    : boxData();
+  const rows=[['Grupo','Bigote inferior','Q1','Mediana','Q3','Bigote superior','Atípicos']];
+  items.forEach(it=>{ const b=it.b; if(!b) return;
+    rows.push([it.name,b.whisker_lo,b.q1,b.median,b.q3,b.whisker_hi,(b.outliers||[]).join(' | ')]); });
+  return rows.length>1 ? PSFIG.toCSV(rows) : null;
+}
+
+/* CSV del análisis bivariado. */
+function tdCSV(t){
+  if(!LASTDOBLE) return null;
+  const r=LASTDOBLE.r;
+  if(t==='scatter'){
+    const rows=[[r.xname,r.yname]];
+    for(let i=0;i<LASTDOBLE.rawX.length;i++){ const x=LASTDOBLE.rawX[i],y=LASTDOBLE.rawY[i]; if(_isNum(x)&&_isNum(y)) rows.push([+x,+y]); }
+    return rows.length>1?PSFIG.toCSV(rows):null;
+  }
+  const head=[r.xname+' \\ '+r.yname].concat(r.ycats).concat(['Total']);
+  const rows=[head];
+  r.xcats.forEach((xc,i)=>{ rows.push([xc].concat(r.matriz[i]).concat([r.total_filas[i]])); });
+  rows.push(['Total'].concat(r.total_cols).concat([r.total]));
+  return PSFIG.toCSV(rows);
+}
+
+/* CSV del análisis multivariado. */
+function mvCSV(t){
+  if(!LASTMV) return null;
+  const r=LASTMV.r, data=LASTMV.data, cols=r.cols;
+  if(t==='splom'){
+    const n=data[cols[0]].length, rows=[cols.slice()];
+    for(let i=0;i<n;i++){ if(cols.every(c=>_isNum(data[c][i]))) rows.push(cols.map(c=>+data[c][i])); }
+    return rows.length>1?PSFIG.toCSV(rows):null;
+  }
+  const rows=[[''].concat(cols)];
+  cols.forEach((c,i)=>{ rows.push([c].concat(r.corr[i].map(v=>+(+v).toFixed(4)))); });
+  return PSFIG.toCSV(rows);
+}
+
+PSFIG.toolbar($('fig-adv'), ()=>{
+  if(!LAST) return null;
+  const base='descriptivo_'+SL(LASTCOL)+'_'+CURTAB;
+  if(CURTAB==='box'||CURTAB==='violin'){
+    const node=$('svgArea').querySelector('svg'); if(!node) return null;
+    return {kind:'svgnode', node, basename:base, csv:boxCSV()};
+  }
+  if(!mainChart) return null;
+  return {kind:'chart', chart:mainChart, basename:base, csv:PSFIG.chartToCSV(mainChart)};
+});
+PSFIG.toolbar($('fig-tfhist'), ()=> tfHistChart
+  ? {kind:'chart', chart:tfHistChart, basename:'histograma_'+SL($('tf-col').value), csv:PSFIG.chartToCSV(tfHistChart)} : null);
+PSFIG.toolbar($('fig-tfojiva'), ()=> tfOjivaChart
+  ? {kind:'chart', chart:tfOjivaChart, basename:'ojiva_'+SL($('tf-col').value), csv:PSFIG.chartToCSV(tfOjivaChart)} : null);
+PSFIG.toolbar($('fig-td'), ()=>{
+  if(!LASTDOBLE || !window.Plotly) return null;
+  return {kind:'plotly', el:$('td-plot'), basename:'bivariado_'+SL(LASTDOBLE.xn)+'_'+SL(LASTDOBLE.yn)+'_'+CURTD, csv:tdCSV(CURTD)};
+});
+PSFIG.toolbar($('fig-mv'), ()=>{
+  if(!LASTMV || !window.Plotly) return null;
+  return {kind:'plotly', el:$('mv-plot'), basename:'multivariado_'+CURMV, csv:mvCSV(CURMV)};
+});
 </script>
 {% endblock %}

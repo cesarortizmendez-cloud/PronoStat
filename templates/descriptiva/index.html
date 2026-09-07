@@ -1,14 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}3 · Descriptiva{% endblock %}
-{% block topbar %}3 · Estadística descriptiva (monovariada){% endblock %}
+{% block topbar %}3 · Estadística descriptiva{% endblock %}
 {% block nav_desc %}active{% endblock %}
 
 {% block content %}
 <div class="page-head">
   <div class="crumbs">Inicio › Descriptiva</div>
   <h1>Estadística descriptiva</h1>
-  <p>Resumen numérico y <b>gráficos exploratorios profesionales</b> de una variable numérica, con la
-     opción de <b>segmentar por grupos</b> para comparar distribuciones.</p>
+  <p>Análisis <b>monovariado, bivariado y multivariado</b>: resumen numérico y gráficos exploratorios de una
+     variable (con segmentación por grupos), tablas de frecuencia con histograma y ojiva, relaciones entre dos
+     variables (tabla de doble entrada, columnas y superficie 3D, dispersión) y entre varias (correlaciones y
+     matriz de dispersión).</p>
 </div>
 
 <div class="theory">
@@ -24,7 +26,7 @@
   <summary style="font-weight:700;font-size:1rem">Manual de utilización del módulo</summary>
   <div class="small" style="margin-top:.8rem;line-height:1.8">
   <p><b>¿Qué hace este módulo?</b> Resume una variable con números y gráficos, y arma tablas de frecuencia. Sirve para conocer el centro, la dispersión, la forma y los valores atípicos de los datos.</p>
-  <p><b>¿Cómo se usa?</b> Elige una variable numérica (y, opcionalmente, una variable de segmentación para comparar grupos) y pulsa «Analizar». Explora los distintos gráficos con los botones. Abajo, en «Tablas de distribución de frecuencias», genera la tabla monovariada o la de doble entrada.</p>
+  <p><b>¿Cómo se usa?</b> Elige una variable numérica (y, opcionalmente, una variable de segmentación para comparar grupos) y pulsa «Analizar». Explora los distintos gráficos con los botones. Abajo, en «Tablas de frecuencia y análisis de relaciones», tienes tres pestañas: <b>Monovariada</b> (tabla de frecuencias con histograma y ojiva), <b>Bivariada</b> (doble entrada con gráficos 3D y dispersión, pudiendo definir el nº de intervalos de X e Y) y <b>Multivariada</b> (correlaciones y matriz de dispersión entre varias variables).</p>
   <p><b>¿Cómo se interpretan los resultados?</b> Si media ≈ mediana la distribución es simétrica; si difieren, hay asimetría. El CV mide la dispersión relativa. El boxplot y los puntos rojos muestran atípicos. El Q-Q normal evalúa la normalidad (puntos sobre la recta). Con segmentación, la ANOVA indica si las medias de los grupos difieren (p &lt; 0,05).</p>
   <p><b>Símbolos:</b> n tamaño · x̄ media · Md mediana · s desviación · s² varianza · CV = (s/x̄)·100 · Q1,Q3 cuartiles · IQR = Q3−Q1 · asimetría (0 simétrica) · curtosis (0 ≈ normal) · KDE densidad · ECDF acumulada empírica.</p>
   </div>
@@ -63,11 +65,17 @@
   </div>
   <div id="tb-doble" style="display:none">
     <p class="card-sub">Tabla de contingencia de dos variables, con márgenes, y su visualización en 3D (columnas y superficie) y dispersión.</p>
-    <div class="grid grid-3">
+    <div class="grid grid-2">
       <div class="field"><label>Variable X (filas)</label><select id="td-x"></select></div>
       <div class="field"><label>Variable Y (columnas)</label><select id="td-y"></select></div>
-      <div class="field" style="justify-content:flex-end"><button class="btn" id="td-run">Generar tabla y gráficos</button></div>
+      <div class="field"><label>Nº de intervalos de X</label>
+        <input type="number" id="td-xbins" min="2" max="30" placeholder="automático (Sturges)">
+        <span class="hint">Solo si X es numérica continua; vacío = automático.</span></div>
+      <div class="field"><label>Nº de intervalos de Y</label>
+        <input type="number" id="td-ybins" min="2" max="30" placeholder="automático (Sturges)">
+        <span class="hint">Solo si Y es numérica continua; vacío = automático.</span></div>
     </div>
+    <div class="btn-row" style="margin-top:.4rem"><button class="btn" id="td-run">Generar tabla y gráficos</button></div>
     <div id="td-out"></div>
     <div id="td-charts" class="hidden" style="margin-top:1.2rem">
       <div class="btn-row" style="gap:.4rem;margin-top:0">
@@ -537,9 +545,11 @@ $('td-run').addEventListener('click', async ()=>{
   const xn=$('td-x').value, yn=$('td-y').value;
   if(xn===yn){ $('td-out').innerHTML='<div class="alert alert-warn">Elige dos variables distintas.</div>'; $('td-charts').classList.add('hidden'); return; }
   const rawX=PronoStat.values(xn), rawY=PronoStat.values(yn);
+  const xbins=$('td-xbins').value?parseInt($('td-xbins').value):'auto';
+  const ybins=$('td-ybins').value?parseInt($('td-ybins').value):'auto';
   $('td-out').innerHTML='Generando… <span class="spinner"></span>';
   try{
-    const r=await PSU.postJSON('/descriptiva/api/tabla-doble',{x:rawX,y:rawY,xname:xn,yname:yn});
+    const r=await PSU.postJSON('/descriptiva/api/tabla-doble',{x:rawX,y:rawY,xname:xn,yname:yn,xbins,ybins});
     renderDoble(r); LASTDOBLE={r,xn,yn,rawX,rawY};
     $('td-charts').classList.remove('hidden');
     document.querySelectorAll('.tdchart').forEach(x=>x.classList.remove('active'));

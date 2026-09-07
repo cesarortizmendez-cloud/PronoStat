@@ -70,7 +70,7 @@ def _fit_one(name, label, pnames, x, n):
     aicc = aic + (2 * k * (k + 1) / (n - k - 1)) if n - k - 1 > 0 else float('nan')
     bic = k * np.log(n) - 2 * ll
 
-    ks = stats.kstest(x, name, args=params)
+    ks_s, ks_p = _ks_gof(dist, params, x, n)
     try:
         cvm = stats.cramervonmises(x, name, args=params)
         cvm_s, cvm_p = float(cvm.statistic), float(cvm.pvalue)
@@ -85,7 +85,7 @@ def _fit_one(name, label, pnames, x, n):
         'params_fmt': ' · '.join(f'{pn} = {p:.4g}' for pn, p in zip(pnames, params)),
         'k': k, 'loglik': ll,
         'aic': aic, 'aicc': aicc, 'bic': bic,
-        'ks_stat': float(ks.statistic), 'ks_p': float(ks.pvalue),
+        'ks_stat': ks_s, 'ks_p': ks_p,
         'cvm_stat': cvm_s, 'cvm_p': cvm_p,
         'chi2_stat': chi2_s, 'chi2_df': chi2_df, 'chi2_p': chi2_p,
     }
@@ -106,6 +106,26 @@ def _chi2_gof(dist, params, x, n, k):
     df = max(1, m - 1 - k)
     p = float(stats.chi2.sf(chi2, df))
     return chi2, df, p
+
+
+def _ks_gof(dist, params, x, n):
+    """Kolmogorov–Smirnov de bondad de ajuste, calculado a mano.
+
+    Evita stats.kstest(x, nombre, args=...), cuya firma interna cambia entre
+    versiones de scipy (en algunas de Vercel lanza el error de ndtr con 3
+    argumentos). Aquí se evalúa la CDF de la distribución ya ajustada.
+    """
+    try:
+        xs = np.sort(x)
+        cdf = np.asarray(dist.cdf(xs, *params), dtype=float)
+        cdf = np.clip(cdf, 0.0, 1.0)
+        d_plus = float(np.max(np.arange(1, n + 1) / n - cdf))
+        d_minus = float(np.max(cdf - np.arange(0, n) / n))
+        D = max(d_plus, d_minus)
+        p = float(stats.kstwobign.sf(D * float(np.sqrt(n))))
+        return D, float(min(1.0, max(0.0, p)))
+    except Exception:
+        return float('nan'), float('nan')
 
 
 def fit_all(values, bins='auto'):
@@ -232,20 +252,40 @@ def normalidad(values):
     n = int(x.size)
     if n < 8:
         raise ValueError('Se requieren al menos 8 datos válidos.')
+    mu = float(np.mean(x)); sd = float(np.std(x, ddof=1))
     pruebas = []
 
+    # Cada prueba va en su propio try/except: si una falla (p. ej. por diferencias
+    # entre versiones de scipy), las demás se calculan igual. KS y Jarque-Bera se
+    # calculan a mano con primitivas estables, evitando firmas que cambian de versión.
     if 3 <= n <= 5000:
-        w, p = stats.shapiro(x)
-        pruebas.append(_pt('Shapiro–Wilk', float(w), float(p), 'W'))
+        try:
+            r = stats.shapiro(x)
+            pruebas.append(_pt('Shapiro–Wilk', float(r.statistic), float(r.pvalue), 'W'))
+        except Exception:
+            pass
     try:
-        k2, p = stats.normaltest(x)
-        pruebas.append(_pt("D'Agostino–Pearson (K²)", float(k2), float(p), 'K²'))
+        r = stats.normaltest(x)
+        pruebas.append(_pt("D'Agostino–Pearson (K²)", float(r.statistic), float(r.pvalue), 'K²'))
     except Exception:
         pass
-    jb = stats.jarque_bera(x)
-    pruebas.append(_pt('Jarque–Bera', float(jb.statistic), float(jb.pvalue), 'JB'))
-    ks = stats.kstest(x, 'norm', args=(float(np.mean(x)), float(np.std(x, ddof=1))))
-    pruebas.append(_pt('Kolmogorov–Smirnov', float(ks.statistic), float(ks.pvalue), 'D'))
+    try:                                                # Jarque–Bera (cálculo directo)
+        S = float(stats.skew(x)); Kx = float(stats.kurtosis(x))     # curtosis en exceso
+        jb = n / 6.0 * (S ** 2 + (Kx ** 2) / 4.0)
+        pruebas.append(_pt('Jarque–Bera', float(jb), float(stats.chi2.sf(jb, 2)), 'JB'))
+    except Exception:
+        pass
+    try:                                                # Kolmogorov–Smirnov vs normal (manual)
+        if sd > 0:
+            xs = np.sort(x)
+            cdf = stats.norm.cdf((xs - mu) / sd)
+            d_plus = float(np.max(np.arange(1, n + 1) / n - cdf))
+            d_minus = float(np.max(cdf - np.arange(0, n) / n))
+            D = max(d_plus, d_minus)
+            pks = float(stats.kstwobign.sf(D * float(np.sqrt(n))))
+            pruebas.append(_pt('Kolmogorov–Smirnov', D, float(min(1.0, max(0.0, pks))), 'D'))
+    except Exception:
+        pass
 
     # Anderson–Darling (usa valores críticos, no p directo). Defensivo ante
     # cambios de API entre versiones de scipy.
@@ -272,6 +312,11 @@ def normalidad(values):
     ad_rechaza = bool(anderson and anderson['rechaza'])
     n_rechazos = sum(1 for t in pruebas if t['p'] < 0.05) + (1 if ad_rechaza else 0)
     total = len(pruebas) + (1 if anderson else 0)
+    if total == 0:
+        return {'n': n, 'pruebas': [], 'anderson': None,
+                'skew': float(stats.skew(x)), 'kurt': float(stats.kurtosis(x)), 'normal': None,
+                'veredicto': 'No se pudo calcular ninguna prueba de normalidad en este entorno; '
+                             'usa el histograma y el gráfico Q–Q para evaluar la normalidad visualmente.'}
     normal = n_rechazos == 0
     veredicto = ('Todas las pruebas son compatibles con normalidad (ningún p &lt; 0,05): '
                  'es razonable asumir que los datos provienen de una distribución normal.'
@@ -313,3 +358,101 @@ def prob_calc(dist, params, modo, a=None, b=None, p=None):
     else:
         raise ValueError('modo inválido')
     return res
+
+
+# ---------------------------------------------------------------------------
+# Análisis de los errores (residuos) del ajuste de una distribución
+# ---------------------------------------------------------------------------
+def residuos(values, dist, params):
+    """Analiza los residuos del ajuste de una distribución seleccionada.
+
+    Definición educativa de residuo: diferencia entre la frecuencia acumulada
+    EMPÍRICA de cada dato (posición de graficación de Hazen, (i-0,5)/n) y la
+    frecuencia acumulada TEÓRICA que predice la distribución ajustada,
+    e_i = F_emp(x_(i)) − F_teo(x_(i)). Es la misma cantidad que mide la prueba
+    de Kolmogorov–Smirnov; si el ajuste es bueno, los residuos son pequeños y
+    se reparten alrededor de cero sin patrón.
+    """
+    x = _clean(values)
+    n = int(x.size)
+    if n < 8:
+        raise ValueError('Se requieren al menos 8 datos válidos.')
+
+    label = {d[0]: d[1] for d in _DISTS}.get(dist, dist)
+    d = getattr(stats, dist)
+    par = tuple(float(v) for v in params)
+
+    xs = np.sort(x)
+    F_emp = (np.arange(1, n + 1) - 0.5) / n            # posición de Hazen
+    F_teo = np.asarray(d.cdf(xs, *par), dtype=float)
+    F_teo = np.clip(F_teo, 0.0, 1.0)
+    e = F_emp - F_teo                                  # residuos (P–P)
+
+    # KS a partir de los mismos residuos (coherente con el ranking)
+    D_plus = float(np.max(np.arange(1, n + 1) / n - F_teo))
+    D_minus = float(np.max(F_teo - np.arange(0, n) / n))
+    D = max(D_plus, D_minus)
+    ks_p = float(min(1.0, max(0.0, stats.kstwobign.sf(D * float(np.sqrt(n))))))
+
+    media = float(np.mean(e))
+    desv = float(np.std(e, ddof=1)) if n > 1 else 0.0
+    max_abs = float(np.max(np.abs(e)))
+    rmse = float(np.sqrt(np.mean(e ** 2)))
+    sesgo = float(stats.skew(e)) if desv > 0 else 0.0
+
+    # histograma de los residuos
+    nb = max(5, min(30, int(np.ceil(np.log2(n) + 1))))
+    counts, edges = np.histogram(e, bins=nb)
+    centers = (edges[:-1] + edges[1:]) / 2
+
+    # residuo en función del valor (para detectar patrones sistemáticos)
+    resid_xy = {
+        'x': [round(float(v), 6) for v in xs],
+        'e': [round(float(v), 6) for v in e],
+    }
+    # P–P: teórica (eje x) vs empírica (eje y), con recta de 45°
+    pp = {
+        'teo': [round(float(v), 6) for v in F_teo],
+        'emp': [round(float(v), 6) for v in F_emp],
+        'line': [[0.0, 0.0], [1.0, 1.0]],
+    }
+
+    interp = []
+    interp.append(f'Se analizan los residuos del ajuste de la distribución '
+                  f'<b>{label}</b>. Cada residuo es la distancia vertical entre la '
+                  'frecuencia acumulada observada y la que predice el modelo.')
+    signo = 'ligeramente positivo' if media > 1e-4 else (
+            'ligeramente negativo' if media < -1e-4 else 'prácticamente nulo')
+    interp.append(f'La media de los residuos es {media:.4f} ({signo}) y su desviación '
+                  f'estándar {desv:.4f}. Una media cercana a 0 indica que el modelo no '
+                  'sobre- ni subestima sistemáticamente la acumulación de probabilidad.')
+    interp.append(f'El mayor residuo en valor absoluto es {max_abs:.4f}; coincide con el '
+                  f'estadístico D de Kolmogorov–Smirnov (D = {D:.4f}, p = {ks_p:.3f}). '
+                  + ('Como p ≥ 0,05, no hay evidencia para rechazar el ajuste.'
+                     if ks_p >= 0.05 else
+                     'Como p &lt; 0,05, el ajuste se rechaza: revisa el patrón de residuos '
+                     'y prueba otra distribución del ranking.'))
+    interp.append(f'La raíz del error cuadrático medio (RMSE) de los residuos es {rmse:.4f}. '
+                  'En el gráfico de residuos frente al valor, una nube sin tendencia (banda '
+                  'horizontal alrededor de 0) confirma un buen ajuste; una curva en “U” o en '
+                  '“S” señala que la forma de la distribución no es la adecuada.')
+    forma_h = ('aproximadamente simétrico' if abs(sesgo) < 0.5 else
+               ('con cola a la derecha' if sesgo > 0 else 'con cola a la izquierda'))
+    interp.append(f'El histograma de los residuos es {forma_h} (asimetría = {sesgo:.2f}); '
+                  'idealmente debería concentrarse cerca de 0 y ser aproximadamente simétrico.')
+
+    return {
+        'dist': dist, 'label': label, 'n': n,
+        'pp': pp,
+        'resid': resid_xy,
+        'hist': {
+            'centers': [round(float(v), 6) for v in centers],
+            'counts': [int(c) for c in counts],
+            'width': float(edges[1] - edges[0]),
+        },
+        'stats': {
+            'media': media, 'desv': desv, 'max_abs': max_abs,
+            'rmse': rmse, 'sesgo': sesgo, 'ks_D': D, 'ks_p': ks_p,
+        },
+        'interpretacion': interp,
+    }

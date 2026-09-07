@@ -34,6 +34,17 @@ def normalidad_api(request):
 
 @csrf_exempt
 @require_POST
+def residuos_api(request):
+    """Análisis de los errores (residuos) del ajuste de una distribución."""
+    try:
+        p = json.loads(request.body.decode('utf-8') or '{}')
+        return JsonResponse(solver.residuos(p['values'], p['dist'], p['params']))
+    except Exception as e:
+        return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)
+
+
+@csrf_exempt
+@require_POST
 def prob_api(request):
     """Calculadora de probabilidades sobre la distribución ajustada."""
     try:

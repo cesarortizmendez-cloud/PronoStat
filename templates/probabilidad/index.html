@@ -111,8 +111,29 @@
   </div>
 </div>
 
+<div id="resid-card" class="card hidden">
+  <h2><span class="step">3</span> Análisis de errores (residuos)</h2>
+  <p class="card-sub">Estudia los <b>errores del ajuste</b>: la diferencia entre la frecuencia acumulada observada y la que predice la distribución seleccionada, <span class="muted">e = F<sub>emp</sub> − F<sub>teórica</sub></span>. Si el ajuste es bueno, los residuos son pequeños y se reparten alrededor de cero sin patrón.</p>
+  <div class="grid grid-3">
+    <div class="field"><label>Distribución a analizar</label><select id="resid-dist"></select></div>
+    <div class="field" style="align-self:end"><button class="btn btn-ghost" id="btnResid">Analizar residuos</button></div>
+  </div>
+  <div id="resid-msg" style="margin-top:.6rem"></div>
+  <div id="resid-res" class="hidden" style="margin-top:1rem">
+    <div id="resid-stats" class="stat-grid"></div>
+    <div class="btn-row" style="gap:.4rem;margin-top:.8rem">
+      <button class="btn btn-ghost resid-tab active" data-t="pp">P–P (empírica vs teórica)</button>
+      <button class="btn btn-ghost resid-tab" data-t="rv">Residuos vs valor</button>
+      <button class="btn btn-ghost resid-tab" data-t="hist">Histograma de residuos</button>
+    </div>
+    <div id="resid-note" class="alert alert-info small"></div>
+    <div class="chart-box tall"><canvas id="residChart"></canvas></div>
+    <ul id="resid-interp" class="small" style="margin-top:.8rem;line-height:1.7"></ul>
+  </div>
+</div>
+
 <div id="calc-card" class="card hidden">
-  <h2><span class="step">3</span> Calculadora de probabilidades</h2>
+  <h2><span class="step">4</span> Calculadora de probabilidades</h2>
   <p class="card-sub">Calcula probabilidades y percentiles usando una de las distribuciones ajustadas.</p>
   <div class="grid grid-3">
     <div class="field"><label>Distribución</label><select id="calc-dist"></select></div>
@@ -161,8 +182,10 @@ async function run(){
     $('run-msg').innerHTML='';
     render(FIT);
     $('norm-card').classList.remove('hidden');
+    $('resid-card').classList.remove('hidden');
     $('calc-card').classList.remove('hidden');
     $('norm-res').classList.add('hidden'); $('norm-msg').innerHTML='';
+    $('resid-res').classList.add('hidden'); $('resid-msg').innerHTML='';
     $('calc-res').innerHTML='';
   }catch(err){ $('run-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 }
@@ -193,9 +216,13 @@ function render(r){
   });
   $('interp').innerHTML=(r.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
 
-  // calculadora: opciones de distribución
-  const cd=$('calc-dist'); cd.innerHTML='';
-  r.ranking.forEach(row=>{ const o=document.createElement('option'); o.value=row.dist; o.textContent=row.label+(row.best?' (mejor)':''); cd.appendChild(o); });
+  // calculadora y residuos: opciones de distribución (por defecto, la mejor)
+  const cd=$('calc-dist'), rd=$('resid-dist'); cd.innerHTML=''; rd.innerHTML='';
+  r.ranking.forEach(row=>{
+    const label=row.label+(row.best?' (mejor)':'');
+    const o1=document.createElement('option'); o1.value=row.dist; o1.textContent=label; cd.appendChild(o1);
+    const o2=document.createElement('option'); o2.value=row.dist; o2.textContent=label; rd.appendChild(o2);
+  });
 
   drawChart(CURTAB);
 }
@@ -257,6 +284,64 @@ $('btnNorm').addEventListener('click', async ()=>{
     $('norm-res').classList.remove('hidden');
   }catch(err){ $('norm-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
 });
+
+/* ---------- Análisis de errores (residuos) ---------- */
+let residChart=null, RESID=null, RTAB='pp';
+$('btnResid').addEventListener('click', async ()=>{
+  if(!FIT){ return; }
+  const dist=$('resid-dist').value;
+  const row=FIT.ranking.find(r=>r.dist===dist);
+  const d=PronoStat.get(), values=d.rows.map(r=>r[COL]);
+  $('resid-msg').innerHTML='Analizando residuos… <span class="spinner"></span>';
+  try{
+    RESID=await PSU.postJSON('/probabilidad/api/residuos',{values,dist,params:row.params});
+    $('resid-msg').innerHTML='';
+    const s=RESID.stats;
+    $('resid-stats').innerHTML=
+      stat('Media residuos',s.media)+stat('Desv. residuos',s.desv)+
+      stat('|Residuo| máx (D)',s.max_abs)+stat('RMSE',s.rmse)+
+      stat('KS p-valor',s.ks_p)+stat('Asimetría',s.sesgo);
+    $('resid-interp').innerHTML=(RESID.interpretacion||[]).map(t=>`<li>${t}</li>`).join('');
+    $('resid-res').classList.remove('hidden');
+    drawResid(RTAB);
+  }catch(err){ $('resid-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+
+document.querySelectorAll('.resid-tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.resid-tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); RTAB=b.dataset.t; drawResid(RTAB);
+}));
+
+function drawResid(t){
+  if(!RESID) return;
+  if(residChart){ residChart.destroy(); residChart=null; }
+  const ctx=$('residChart');
+  if(t==='pp'){
+    $('resid-note').innerHTML=`Gráfico <b>P–P</b> de la distribución <b>${RESID.label}</b>: frecuencia acumulada teórica (eje X) contra la observada (eje Y). Cuanto más se peguen los puntos a la diagonal, mejor es el ajuste.`;
+    const pp=RESID.pp;
+    residChart=new Chart(ctx,{data:{datasets:[
+      {type:'scatter',label:'Puntos',data:pp.teo.map((x,i)=>({x,y:pp.emp[i]})),backgroundColor:'#1e3a8a',pointRadius:2.5},
+      {type:'line',label:'Ajuste ideal',data:pp.line.map(p=>({x:p[0],y:p[1]})),borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0,parsing:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{position:'top'}},
+      scales:{x:{type:'linear',min:0,max:1,title:{display:true,text:'F acumulada teórica'}},
+      y:{min:0,max:1,title:{display:true,text:'F acumulada observada'}}}}});
+  } else if(t==='rv'){
+    $('resid-note').innerHTML='<b>Residuos frente al valor</b> de la variable. Una nube sin tendencia (banda horizontal en torno a 0) indica buen ajuste; una curva en “U” o en “S” señala que la forma de la distribución no es la adecuada.';
+    const rv=RESID.resid;
+    residChart=new Chart(ctx,{data:{datasets:[
+      {type:'scatter',label:'Residuo',data:rv.x.map((x,i)=>({x,y:rv.e[i]})),backgroundColor:'#1e3a8a',pointRadius:2.5},
+      {type:'line',label:'Cero',data:[{x:Math.min(...rv.x),y:0},{x:Math.max(...rv.x),y:0}],borderColor:'#b45309',borderDash:[6,4],borderWidth:1.5,pointRadius:0,parsing:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,parsing:false,plugins:{legend:{position:'top'}},
+      scales:{x:{type:'linear',title:{display:true,text:COL}},y:{title:{display:true,text:'residuo (e)'}}}}});
+  } else {
+    $('resid-note').innerHTML='<b>Histograma de los residuos</b>. Idealmente se concentra cerca de 0 y es aproximadamente simétrico; sesgos marcados indican un ajuste deficiente.';
+    const h=RESID.hist;
+    residChart=new Chart(ctx,{data:{labels:h.centers.map(v=>v.toFixed(3)),datasets:[
+      {type:'bar',label:'Frecuencia',data:h.counts,backgroundColor:'#bfdbfe',borderColor:'#1e3a8a',borderWidth:1}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},
+      scales:{x:{title:{display:true,text:'residuo (e)'}},y:{title:{display:true,text:'frecuencia'},beginAtZero:true}}}});
+  }
+}
 
 /* ---------- Calculadora ---------- */
 $('calc-modo').addEventListener('change', ()=>{

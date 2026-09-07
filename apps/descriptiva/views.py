@@ -52,3 +52,14 @@ def tabla_doble_api(request):
                                                p.get('yname', 'Y'), p.get('xbins', 'auto'), p.get('ybins', 'auto')))
     except Exception as e:
         return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)
+
+
+@csrf_exempt
+@require_POST
+def multivar_api(request):
+    """Análisis multivariado: matriz de correlación entre columnas numéricas."""
+    try:
+        p = json.loads(request.body.decode('utf-8') or '{}')
+        return JsonResponse(solver.multivar(p['data'], p.get('cols')))
+    except Exception as e:
+        return JsonResponse({'error': f'{type(e).__name__}: {e}'}, status=400)

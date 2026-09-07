@@ -391,3 +391,67 @@ def tabla_doble(xvalues, yvalues, xname="X", yname="Y", xbins="auto", ybins="aut
             "matriz": [[int(v) for v in row] for row in M],
             "total_filas": [int(v) for v in row_tot], "total_cols": [int(v) for v in col_tot],
             "total": total, "interpretacion": interp}
+
+
+# --------------------------------------------------------------------------- #
+#  Análisis multivariado: matriz de correlación
+# --------------------------------------------------------------------------- #
+def _fuerza(a):
+    return "fuerte" if a > 0.7 else ("moderada" if a >= 0.3 else "débil")
+
+
+def multivar(data, cols=None):
+    """Matriz de correlación de Pearson entre columnas numéricas.
+    data = {columna: [valores,...]}. Eliminación listwise de filas con algún nulo/no numérico."""
+    names = list(cols) if cols else list(data.keys())
+    names = [c for c in names if c in data]
+    if len(names) < 2:
+        raise ValueError("Selecciona al menos 2 variables numéricas.")
+
+    def _num(v):
+        try:
+            f = float(v)
+            return f if not math.isnan(f) else np.nan
+        except (TypeError, ValueError):
+            return np.nan
+
+    M = np.array([[_num(v) for v in data[c]] for c in names], dtype=float)  # k×n
+    mask = ~np.any(np.isnan(M), axis=0)                                     # filas completas
+    M = M[:, mask]
+    n = int(M.shape[1])
+    if n < 3:
+        raise ValueError("Muy pocos datos completos (se requieren al menos 3 filas sin nulos en todas las variables).")
+
+    keep = M.var(axis=1) > 0                        # descartar variables constantes
+    if int(keep.sum()) < 2:
+        raise ValueError("Se requieren al menos 2 variables con variación (varianza > 0).")
+    names = [names[i] for i in range(len(names)) if keep[i]]
+    M = M[keep]
+    k = len(names)
+    corr = np.clip(np.corrcoef(M), -1.0, 1.0)
+
+    pares = []
+    for i in range(k):
+        for j in range(i + 1, k):
+            pares.append({"a": names[i], "b": names[j], "r": float(corr[i, j])})
+    pares.sort(key=lambda p: -abs(p["r"]))
+
+    resumen = [{"col": names[i], "media": float(M[i].mean()), "desv": float(M[i].std(ddof=1))}
+               for i in range(k)]
+
+    interp = []
+    if pares:
+        top = pares[0]
+        signo = "positiva (crecen juntas)" if top["r"] > 0 else "negativa (una sube cuando la otra baja)"
+        interp.append(f"La relación lineal más fuerte es «{top['a']}» ↔ «{top['b']}»: r = {top['r']:.3f} "
+                      f"({_fuerza(abs(top['r']))}, {signo}).")
+        debil = min(pares, key=lambda p: abs(p["r"]))
+        interp.append(f"La más débil es «{debil['a']}» ↔ «{debil['b']}» (r = {debil['r']:.3f}).")
+    interp.append("La correlación de Pearson (r, de −1 a 1) mide la relación LINEAL: r ≈ 0 no implica "
+                  "independencia (puede haber relación no lineal). Guía: |r| &lt; 0,3 débil · 0,3–0,7 moderada · "
+                  "&gt; 0,7 fuerte. Correlación no implica causalidad.")
+    interp.append(f"Se usaron {n} filas con datos completos en las {k} variables (eliminación por lista).")
+
+    return {"cols": names, "n": n,
+            "corr": [[float(v) for v in row] for row in corr],
+            "pares": pares, "resumen": resumen, "interpretacion": interp}

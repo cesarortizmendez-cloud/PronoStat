@@ -31,11 +31,12 @@
 </details>
 
 <div class="card">
-  <h2>Tablas de distribución de frecuencias</h2>
+  <h2>Tablas de frecuencia y análisis de relaciones</h2>
   <div id="tbl-needdata"></div>
   <div class="btn-row" id="tbl-controls" style="gap:.4rem;margin-bottom:.4rem">
     <button class="btn btn-ghost tbtab active" data-t="mono">Monovariada</button>
-    <button class="btn btn-ghost tbtab" data-t="doble">Doble entrada (bivariada)</button>
+    <button class="btn btn-ghost tbtab" data-t="doble">Bivariada (doble entrada + 3D)</button>
+    <button class="btn btn-ghost tbtab" data-t="multi">Multivariada</button>
   </div>
   <div id="tb-mono">
     <p class="card-sub">Frecuencias absoluta (fᵢ), relativa (hᵢ), porcentual (%) y acumuladas ascendente/descendente.</p>
@@ -61,13 +62,38 @@
     </div>
   </div>
   <div id="tb-doble" style="display:none">
-    <p class="card-sub">Tabla de contingencia: cuenta las observaciones que combinan cada categoría de X y de Y (con márgenes).</p>
+    <p class="card-sub">Tabla de contingencia de dos variables, con márgenes, y su visualización en 3D (columnas y superficie) y dispersión.</p>
     <div class="grid grid-3">
       <div class="field"><label>Variable X (filas)</label><select id="td-x"></select></div>
       <div class="field"><label>Variable Y (columnas)</label><select id="td-y"></select></div>
-      <div class="field" style="justify-content:flex-end"><button class="btn" id="td-run">Generar tabla</button></div>
+      <div class="field" style="justify-content:flex-end"><button class="btn" id="td-run">Generar tabla y gráficos</button></div>
     </div>
     <div id="td-out"></div>
+    <div id="td-charts" class="hidden" style="margin-top:1.2rem">
+      <div class="btn-row" style="gap:.4rem;margin-top:0">
+        <button class="btn btn-ghost tdchart active" data-c="cols3d">Columnas 3D</button>
+        <button class="btn btn-ghost tdchart" data-c="surf">Superficie 3D</button>
+        <button class="btn btn-ghost tdchart" data-c="scatter">Dispersión X-Y</button>
+      </div>
+      <div id="td-note" class="alert alert-info small"></div>
+      <div id="td-plot" style="width:100%;height:470px"></div>
+    </div>
+  </div>
+
+  <div id="tb-multi" style="display:none">
+    <p class="card-sub">Analiza cómo se relacionan <b>varias</b> variables numéricas a la vez: matriz de correlación y matriz de dispersión (todas contra todas).</p>
+    <div class="field"><label>Variables numéricas (marca 2 o más)</label>
+      <div id="mv-cols" style="display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin-top:.3rem"></div></div>
+    <div class="btn-row"><button class="btn" id="mv-run">Analizar relaciones</button></div>
+    <div id="mv-msg"></div>
+    <div id="mv-out" class="hidden" style="margin-top:.6rem">
+      <div id="mv-interp" class="alert alert-info small" style="line-height:1.7"></div>
+      <div class="btn-row" style="gap:.4rem;margin-top:0">
+        <button class="btn btn-ghost mvchart active" data-c="heat">Mapa de correlaciones</button>
+        <button class="btn btn-ghost mvchart" data-c="splom">Matriz de dispersión</button>
+      </div>
+      <div id="mv-plot" style="width:100%;height:540px"></div>
+    </div>
   </div>
 </div>
 
@@ -429,12 +455,18 @@ function initTablas(){
   PSU.fillColumnSelect($('tf-col'),cols);
   PSU.fillColumnSelect($('td-x'),cols,{selectedIndex:0});
   PSU.fillColumnSelect($('td-y'),cols,{selectedIndex:Math.min(1,cols.length-1)});
+  // multivariada: casillas de columnas numéricas
+  const nums=PronoStat.numericColumns();
+  $('mv-cols').innerHTML = nums.length>=2
+    ? nums.map((c,i)=>`<label class="check" style="font-weight:500"><input type="checkbox" class="mvc" value="${c}" ${i<Math.min(4,nums.length)?'checked':''}> ${c}</label>`).join('')
+    : '<span class="small muted">Se necesitan al menos 2 columnas numéricas.</span>';
 }
 initTablas();
 document.querySelectorAll('.tbtab').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tbtab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   document.getElementById('tb-mono').style.display=b.dataset.t==='mono'?'':'none';
   document.getElementById('tb-doble').style.display=b.dataset.t==='doble'?'':'none';
+  document.getElementById('tb-multi').style.display=b.dataset.t==='multi'?'':'none';
 }));
 
 $('tf-run').addEventListener('click', async ()=>{
@@ -500,13 +532,21 @@ function renderFreqCharts(r){
   }
 }
 
+let LASTDOBLE=null;
 $('td-run').addEventListener('click', async ()=>{
   const xn=$('td-x').value, yn=$('td-y').value;
-  if(xn===yn){ $('td-out').innerHTML='<div class="alert alert-warn">Elige dos variables distintas.</div>'; return; }
-  const payload={x:PronoStat.values(xn),y:PronoStat.values(yn),xname:xn,yname:yn};
+  if(xn===yn){ $('td-out').innerHTML='<div class="alert alert-warn">Elige dos variables distintas.</div>'; $('td-charts').classList.add('hidden'); return; }
+  const rawX=PronoStat.values(xn), rawY=PronoStat.values(yn);
   $('td-out').innerHTML='Generando… <span class="spinner"></span>';
-  try{ const r=await PSU.postJSON('/descriptiva/api/tabla-doble',payload); renderDoble(r); }
-  catch(err){ $('td-out').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+  try{
+    const r=await PSU.postJSON('/descriptiva/api/tabla-doble',{x:rawX,y:rawY,xname:xn,yname:yn});
+    renderDoble(r); LASTDOBLE={r,xn,yn,rawX,rawY};
+    $('td-charts').classList.remove('hidden');
+    document.querySelectorAll('.tdchart').forEach(x=>x.classList.remove('active'));
+    document.querySelector('.tdchart[data-c="cols3d"]').classList.add('active');
+    drawDobleChart('cols3d');
+  }
+  catch(err){ $('td-out').innerHTML=`<div class="alert alert-err">${err.message}</div>`; $('td-charts').classList.add('hidden'); }
 });
 function renderDoble(r){
   let h=`<div class="alert alert-info small">${r.interpretacion.join(' ')}</div><div class="table-wrap"><table><thead><tr><th>${r.xname} \\ ${r.yname}</th>`+
@@ -516,5 +556,98 @@ function renderDoble(r){
   h+='</tbody></table></div>';
   $('td-out').innerHTML=h;
 }
+
+/* ================= Gráficos 3D / multivariados (Plotly, carga diferida) ================= */
+let _plotlyP=null;
+function ensurePlotly(){
+  if(window.Plotly) return Promise.resolve();
+  if(_plotlyP) return _plotlyP;
+  _plotlyP=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js';
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('No se pudo cargar la librería de gráficos (Plotly).'));
+    document.head.appendChild(s);
+  });
+  return _plotlyP;
+}
+function _isNum(v){ return v!==null && v!==undefined && v!=='' && !isNaN(Number(v)); }
+function _pearson(a,b){ const n=a.length; let sx=0,sy=0,sxx=0,syy=0,sxy=0;
+  for(let i=0;i<n;i++){ const x=a[i],y=b[i]; sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y; }
+  const cov=sxy-sx*sy/n, vx=sxx-sx*sx/n, vy=syy-sy*sy/n; return (vx>0&&vy>0)?cov/Math.sqrt(vx*vy):NaN; }
+function _fuerza(a){ return Math.abs(a)>0.7?'fuerte':(Math.abs(a)>=0.3?'moderada':'débil'); }
+
+/* Barras 3D reales: un prisma por celda de la tabla de contingencia */
+function bars3d(M,xcats,ycats){
+  const X=[],Y=[],Z=[],I=[],J=[],K=[],inten=[]; const wx=0.42,wy=0.42; let base=0;
+  const F=[[0,1,2],[0,2,3],[4,5,6],[4,6,7],[0,1,5],[0,5,4],[1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]];
+  for(let i=0;i<M.length;i++){ for(let j=0;j<M[i].length;j++){
+    const h=M[i][j]; if(h<=0) continue; const cx=i, cy=j;
+    const V=[[cx-wx,cy-wy,0],[cx+wx,cy-wy,0],[cx+wx,cy+wy,0],[cx-wx,cy+wy,0],[cx-wx,cy-wy,h],[cx+wx,cy-wy,h],[cx+wx,cy+wy,h],[cx-wx,cy+wy,h]];
+    V.forEach(v=>{ X.push(v[0]); Y.push(v[1]); Z.push(v[2]); inten.push(v[2]); });
+    F.forEach(f=>{ I.push(base+f[0]); J.push(base+f[1]); K.push(base+f[2]); }); base+=8;
+  }}
+  return {type:'mesh3d',x:X,y:Y,z:Z,i:I,j:J,k:K,intensity:inten,colorscale:'Blues',flatshading:true,showscale:false,hoverinfo:'skip'};
+}
+
+async function drawDobleChart(type){
+  if(!LASTDOBLE) return;
+  try{ await ensurePlotly(); }catch(e){ $('td-note').innerHTML='<b>[gráficos no disponibles]</b> '+e.message; return; }
+  const d=LASTDOBLE, M=d.r.matriz, xcats=d.r.xcats, ycats=d.r.ycats, el=$('td-plot');
+  if(type==='cols3d'){
+    $('td-note').innerHTML='Cada columna es la <b>frecuencia conjunta</b> (nº de casos) de una combinación X×Y. Arrastra con el mouse para girar.';
+    const layout={margin:{l:0,r:0,t:8,b:0},scene:{xaxis:{title:d.xn,tickvals:xcats.map((_,i)=>i),ticktext:xcats},yaxis:{title:d.yn,tickvals:ycats.map((_,j)=>j),ticktext:ycats},zaxis:{title:'frecuencia'}}};
+    Plotly.react(el,[bars3d(M,xcats,ycats)],layout,{responsive:true,displaylogo:false});
+  } else if(type==='surf'){
+    $('td-note').innerHTML='La <b>superficie</b> muestra la misma frecuencia conjunta como un relieve continuo: los picos son las combinaciones más frecuentes.';
+    const layout={margin:{l:0,r:0,t:8,b:0},scene:{xaxis:{title:d.yn,tickvals:ycats.map((_,j)=>j),ticktext:ycats},yaxis:{title:d.xn,tickvals:xcats.map((_,i)=>i),ticktext:xcats},zaxis:{title:'frecuencia'}}};
+    Plotly.react(el,[{type:'surface',z:M,x:ycats.map((_,j)=>j),y:xcats.map((_,i)=>i),colorscale:'Blues',showscale:true}],layout,{responsive:true,displaylogo:false});
+  } else {
+    const ax=[],ay=[]; for(let i=0;i<d.rawX.length;i++){ if(_isNum(d.rawX[i])&&_isNum(d.rawY[i])){ ax.push(+d.rawX[i]); ay.push(+d.rawY[i]); } }
+    if(ax.length<3){ Plotly.purge(el); el.innerHTML='<div class="small muted" style="padding:2rem;text-align:center">La dispersión requiere que <b>ambas</b> variables sean numéricas.</div>'; $('td-note').innerHTML='Dispersión no disponible para variables categóricas.'; return; }
+    const rr=_pearson(ax,ay);
+    $('td-note').innerHTML=`Cada punto es una observación (X, Y). Correlación de Pearson r = <b>${isNaN(rr)?'—':rr.toFixed(3)}</b>`+(isNaN(rr)?'':` (${_fuerza(rr)}, ${rr>0?'positiva':'negativa'}).`);
+    const layout={margin:{l:60,r:15,t:8,b:48},xaxis:{title:d.xn},yaxis:{title:d.yn}};
+    Plotly.react(el,[{type:'scatter',mode:'markers',x:ax,y:ay,marker:{color:'#1e3a8a',size:6,opacity:.55}}],layout,{responsive:true,displaylogo:false});
+  }
+}
+document.querySelectorAll('.tdchart').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tdchart').forEach(x=>x.classList.remove('active')); b.classList.add('active'); drawDobleChart(b.dataset.c);
+}));
+
+/* ---------- Multivariada ---------- */
+let LASTMV=null;
+$('mv-run').addEventListener('click', async ()=>{
+  const sel=[...document.querySelectorAll('.mvc')].filter(c=>c.checked).map(c=>c.value);
+  if(sel.length<2){ $('mv-msg').innerHTML='<div class="alert alert-warn">Marca al menos 2 variables numéricas.</div>'; return; }
+  const data={}; sel.forEach(c=>{ data[c]=PronoStat.values(c); });
+  $('mv-msg').innerHTML='Analizando relaciones… <span class="spinner"></span>';
+  try{
+    const r=await PSU.postJSON('/descriptiva/api/multivar',{data,cols:sel});
+    $('mv-msg').innerHTML=''; LASTMV={r,data};
+    $('mv-interp').innerHTML=(r.interpretacion||[]).map(t=>`<p style="margin:.2rem 0">${t}</p>`).join('');
+    $('mv-out').classList.remove('hidden');
+    document.querySelectorAll('.mvchart').forEach(x=>x.classList.remove('active'));
+    document.querySelector('.mvchart[data-c="heat"]').classList.add('active');
+    drawMultiChart('heat');
+  }catch(err){ $('mv-msg').innerHTML=`<div class="alert alert-err">${err.message}</div>`; }
+});
+async function drawMultiChart(type){
+  if(!LASTMV) return;
+  try{ await ensurePlotly(); }catch(e){ $('mv-plot').innerHTML='<b>[gráficos no disponibles]</b> '+e.message; return; }
+  const r=LASTMV.r, data=LASTMV.data, cols=r.cols, el=$('mv-plot');
+  if(type==='heat'){
+    const ann=[]; for(let i=0;i<cols.length;i++){ for(let j=0;j<cols.length;j++){ ann.push({x:cols[j],y:cols[i],text:r.corr[i][j].toFixed(2),showarrow:false,font:{size:11,color:Math.abs(r.corr[i][j])>0.6?'#fff':'#0f172a'}}); } }
+    const layout={margin:{l:100,r:15,t:12,b:100},annotations:ann,yaxis:{autorange:'reversed'}};
+    Plotly.react(el,[{type:'heatmap',z:r.corr,x:cols,y:cols,zmin:-1,zmax:1,colorscale:'RdBu',reversescale:true,colorbar:{title:'r'}}],layout,{responsive:true,displaylogo:false});
+  } else {
+    const n=data[cols[0]].length, ok=[]; for(let i=0;i<n;i++){ if(cols.every(c=>_isNum(data[c][i]))) ok.push(i); }
+    const dims=cols.map(c=>({label:c,values:ok.map(i=>+data[c][i])}));
+    const layout={margin:{l:70,r:20,t:20,b:45}};
+    Plotly.react(el,[{type:'splom',dimensions:dims,marker:{color:'#1e3a8a',size:4,opacity:.5}}],layout,{responsive:true,displaylogo:false});
+  }
+}
+document.querySelectorAll('.mvchart').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.mvchart').forEach(x=>x.classList.remove('active')); b.classList.add('active'); drawMultiChart(b.dataset.c);
+}));
 </script>
 {% endblock %}

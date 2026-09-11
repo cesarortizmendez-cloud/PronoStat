@@ -220,25 +220,37 @@ function axLabel(s){
   const d=+AXDEC;
   return s.replace(/-?\d+(?:\.\d+)?/g, m=>{ const n=parseFloat(m); return isFinite(n)?n.toFixed(d):m; });
 }
-/* Aplica tamaño de fuente y decimales a los ejes de un gráfico Chart.js. */
+/* Aplica tamaño de fuente y decimales a los ejes de un gráfico Chart.js.
+   Nota: se asignan objetos de fuente NUEVOS (no se lee el objeto interno de
+   Chart.js con Object.assign, que puede provocar recursión), y el formato de
+   decimales solo se instala cuando el usuario lo pide. Todo va protegido para
+   que un fallo de formato nunca impida dibujar el gráfico. */
 function styleChartAxes(ch){
-  const sc=ch.options.scales||{};
-  Object.keys(sc).forEach(id=>{
-    const s=sc[id]; if(!s) return;
-    s.ticks=s.ticks||{}; s.ticks.font=Object.assign({},s.ticks.font,{size:AXFONT});
-    s.title=s.title||{}; s.title.font=Object.assign({},s.title.font,{size:AXFONT+1});
-    s.ticks.callback=function(value){
-      const lbl=this.getLabelForValue ? this.getLabelForValue(value) : value;
-      return axLabel(lbl);
-    };
-  });
+  try{
+    const sc=ch.options.scales||{};
+    Object.keys(sc).forEach(id=>{
+      const s=sc[id]; if(!s) return;
+      s.ticks=s.ticks||{}; s.ticks.font={size:AXFONT};
+      s.title=s.title||{}; s.title.font={size:AXFONT+1};
+      if(AXDEC===''){
+        s.ticks.callback=undefined;           // formato por defecto de Chart.js
+      }else{
+        s.ticks.callback=function(value){
+          let lbl; try{ lbl=this.getLabelForValue?this.getLabelForValue(value):value; }catch(e){ lbl=value; }
+          return axLabel(lbl);
+        };
+      }
+    });
+  }catch(e){ /* el formato de ejes no debe impedir dibujar el gráfico */ }
 }
+/* Aplica el estilo y redibuja un gráfico Chart.js sin que un error lo rompa. */
+function styleAndUpdate(ch){ if(!ch) return; styleChartAxes(ch); try{ ch.update('none'); }catch(e){} }
 /* Vuelve a aplicar los ajustes de ejes a todos los gráficos visibles. */
 function refreshAxes(){
-  ['tfHist','tfOjiva'].forEach(id=>{ const ch=Chart.getChart(id); if(ch){ styleChartAxes(ch); ch.update('none'); } });
+  ['tfHist','tfOjiva'].forEach(id=>{ const ch=Chart.getChart(id); if(ch) styleAndUpdate(ch); });
   if(LAST){
     if(CURTAB==='box' || CURTAB==='violin') drawChart(CURTAB);
-    else { const ch=Chart.getChart('mainChart'); if(ch){ styleChartAxes(ch); ch.update('none'); } }
+    else styleAndUpdate(Chart.getChart('mainChart'));
   }
   if(LASTDOBLE && window.Plotly) drawDobleChart(CURTD);
   if(LASTMV && window.Plotly) drawMultiChart(CURMV);
@@ -351,7 +363,7 @@ function drawChart(t){
   else if(t==='ecdf') drawEcdf();
   else if(t==='strip') drawStrip();
   else if(t==='pareto') drawPareto();
-  if(mainChart){ styleChartAxes(mainChart); mainChart.update('none'); }
+  if(mainChart) styleAndUpdate(mainChart);
 }
 
 /* ===== Histograma + densidad + normal / densidades por grupo ===== */
@@ -567,15 +579,25 @@ function renderMono(r,col){
   h+=`<tr class="best-row"><td><b>Total</b></td>${cont?'<td></td>':''}<td class="num"><b>${r.totales.fi}</b></td><td></td><td></td><td class="num"><b>1</b></td><td></td><td class="num"><b>100</b></td><td></td></tr>`;
   h+='</tbody></table></div>';
   $('tf-out').innerHTML=h;
-  renderFreqCharts(r);
+  // Los gráficos son secundarios: si fallan, la tabla debe permanecer visible.
+  try{ renderFreqCharts(r); }catch(e){ $('tf-charts').classList.add('hidden'); }
 }
 
 let tfHistChart=null, tfOjivaChart=null;
 function renderFreqCharts(r){
   if(typeof Chart==='undefined') return;
-  $('tf-charts').classList.remove('hidden');
   const filas=r.filas, labels=filas.map(f=>f.clase);
-  if(tfHistChart){ tfHistChart.destroy(); } if(tfOjivaChart){ tfOjivaChart.destroy(); }
+  if(tfHistChart){ tfHistChart.destroy(); tfHistChart=null; } if(tfOjivaChart){ tfOjivaChart.destroy(); tfOjivaChart=null; }
+  // Con demasiadas clases (p. ej. al elegir «Por valores» en una variable casi
+  // continua) los gráficos no aportan y sobrecargan el navegador: mostramos un aviso.
+  if(filas.length>60){
+    $('tf-charts').classList.add('hidden');
+    $('tf-out').insertAdjacentHTML('beforeend',
+      `<div class="alert alert-warn small" style="margin-top:.6rem">La tabla tiene <b>${filas.length}</b> clases: son demasiadas para un histograma legible. `+
+      `Elige el tipo <b>«Por intervalos (continua)»</b> y un nº de intervalos (p. ej. 8–15) para ver el histograma y la ojiva.</div>`);
+    return;
+  }
+  $('tf-charts').classList.remove('hidden');
 
   // 1) Histograma por clases: barras juntas = frecuencia absoluta fᵢ (sin curva de ajuste)
   tfHistChart=new Chart($('tfHist'),{type:'bar',
@@ -609,8 +631,8 @@ function renderFreqCharts(r){
         plugins:{legend:{display:false}},
         scales:{x:{title:{display:true,text:'categoría'}},y:{title:{display:true,text:'frecuencia acumulada Fᵢ↑'},beginAtZero:true}}}});
   }
-  if(tfHistChart){ styleChartAxes(tfHistChart); tfHistChart.update('none'); }
-  if(tfOjivaChart){ styleChartAxes(tfOjivaChart); tfOjivaChart.update('none'); }
+  styleAndUpdate(tfHistChart);
+  styleAndUpdate(tfOjivaChart);
 }
 
 let LASTDOBLE=null;

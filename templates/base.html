@@ -481,34 +481,37 @@ td.num{font-family:var(--mono)}
       const at=sc.options && sc.options.title;
       const tf=(sc.options && sc.options.ticks && sc.options.ticks.font && sc.options.ticks.font.size) || 11;
       const af=(at && at.font && at.font.size) || 12;
+      const tc=(sc.options && sc.options.ticks && sc.options.ticks.color) || TXT;   // color del texto
+      const atc=(at && at.color) || tc;
+      const showGrid=!(sc.options && sc.options.grid && sc.options.grid.display===false);
       if(sc.axis==='y'){
         const right=(sc.position==='right');
         const ax = right ? ca.right : ca.left;
         ticks.forEach((t,i)=>{
           let py; try{ py=sc.getPixelForTick(i); }catch(e){ py=sc.getPixelForValue(t.value); }
           if(!num(py)) return;
-          if(!right) S.push(`<line x1="${ca.left}" y1="${py}" x2="${ca.right}" y2="${py}" stroke="${GRID}" stroke-width="1"/>`);
+          if(!right && showGrid) S.push(`<line x1="${ca.left}" y1="${py}" x2="${ca.right}" y2="${py}" stroke="${GRID}" stroke-width="1"/>`);
           const lbl=Array.isArray(t.label)?t.label.join(' '):t.label;
-          S.push(`<text x="${right?ax+6:ax-6}" y="${py+3.6}" font-size="${tf}" fill="${TXT}" text-anchor="${right?'start':'end'}">${esc(lbl)}</text>`);
+          S.push(`<text x="${right?ax+6:ax-6}" y="${py+3.6}" font-size="${tf}" fill="${tc}" text-anchor="${right?'start':'end'}">${esc(lbl)}</text>`);
         });
         S.push(`<line x1="${ax}" y1="${ca.top}" x2="${ax}" y2="${ca.bottom}" stroke="${AX}" stroke-width="1"/>`);
         if(at && at.display && at.text){
           const tx=right?(W-11):13, cy=(ca.top+ca.bottom)/2;
-          S.push(`<text x="${tx}" y="${cy}" font-size="${af}" fill="${TXT}" text-anchor="middle" transform="rotate(${right?90:-90} ${tx} ${cy})">${esc(at.text)}</text>`);
+          S.push(`<text x="${tx}" y="${cy}" font-size="${af}" fill="${atc}" text-anchor="middle" transform="rotate(${right?90:-90} ${tx} ${cy})">${esc(at.text)}</text>`);
         }
       } else if(sc.axis==='x'){
         const ay=ca.bottom, many=ticks.length>8;
         ticks.forEach((t,i)=>{
           let px; try{ px=sc.getPixelForTick(i); }catch(e){ px=sc.getPixelForValue(t.value); }
           if(!num(px)) return;
-          S.push(`<line x1="${px}" y1="${ca.top}" x2="${px}" y2="${ca.bottom}" stroke="${GRID}" stroke-width="1"/>`);
+          if(showGrid) S.push(`<line x1="${px}" y1="${ca.top}" x2="${px}" y2="${ca.bottom}" stroke="${GRID}" stroke-width="1"/>`);
           const lbl=Array.isArray(t.label)?t.label.join(' '):t.label;
-          if(many) S.push(`<text x="${px}" y="${ay+13}" font-size="${Math.min(tf,10)}" fill="${TXT}" text-anchor="end" transform="rotate(-40 ${px} ${ay+13})">${esc(lbl)}</text>`);
-          else S.push(`<text x="${px}" y="${ay+15}" font-size="${tf}" fill="${TXT}" text-anchor="middle">${esc(lbl)}</text>`);
+          if(many) S.push(`<text x="${px}" y="${ay+13}" font-size="${Math.min(tf,10)}" fill="${tc}" text-anchor="end" transform="rotate(-40 ${px} ${ay+13})">${esc(lbl)}</text>`);
+          else S.push(`<text x="${px}" y="${ay+15}" font-size="${tf}" fill="${tc}" text-anchor="middle">${esc(lbl)}</text>`);
         });
         S.push(`<line x1="${ca.left}" y1="${ay}" x2="${ca.right}" y2="${ay}" stroke="${AX}" stroke-width="1"/>`);
         if(at && at.display && at.text)
-          S.push(`<text x="${(ca.left+ca.right)/2}" y="${H-6}" font-size="${af}" fill="${TXT}" text-anchor="middle">${esc(at.text)}</text>`);
+          S.push(`<text x="${(ca.left+ca.right)/2}" y="${H-6}" font-size="${af}" fill="${atc}" text-anchor="middle">${esc(at.text)}</text>`);
       }
     });
     S.push(`<clipPath id="psfig-ca"><rect x="${ca.left}" y="${ca.top}" width="${ca.right-ca.left}" height="${ca.bottom-ca.top}"/></clipPath>`);

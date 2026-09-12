@@ -33,16 +33,16 @@
   </div>
 </details>
 
-<div class="card" id="ax-card">
-  <h2>Ajustes de ejes de los gráficos</h2>
-  <p class="card-sub">Cambia el <b>tamaño del texto</b> y los <b>decimales</b> de las etiquetas de los ejes en todos los gráficos descriptivos. Útil cuando las etiquetas son largas (p. ej. intervalos) y se encabalgan, o para dejar los ejes con el tamaño exacto que pide tu revista.</p>
-  <div class="grid grid-3">
+<details class="card" id="ax-card" style="padding:.7rem 1.1rem">
+  <summary style="font-weight:700;font-size:.92rem;cursor:pointer">⚙︎ Ajustes de ejes de los gráficos <span class="muted" style="font-weight:400">(tamaño, decimales, color, cuadrícula)</span></summary>
+  <p class="card-sub" style="margin:.6rem 0 .8rem">Se aplican en vivo a todos los gráficos descriptivos y a las figuras que descargues. Útil para etiquetas largas (intervalos) o para dejar los ejes tal como pide tu revista.</p>
+  <div class="grid grid-3" style="gap:.7rem">
     <div class="field">
-      <label for="ax-size">Tamaño del texto de los ejes: <b id="ax-size-val">12</b> px</label>
+      <label for="ax-size">Tamaño del texto: <b id="ax-size-val">12</b> px</label>
       <input type="range" id="ax-size" min="6" max="22" step="1" value="12">
     </div>
     <div class="field">
-      <label for="ax-dec">Decimales en las etiquetas numéricas</label>
+      <label for="ax-dec">Decimales de los números</label>
       <select id="ax-dec">
         <option value="">Automático</option>
         <option value="0">0 (enteros)</option>
@@ -50,13 +50,19 @@
         <option value="2">2</option>
         <option value="3">3</option>
       </select>
-      <span class="hint">Redondea los números de los ejes (incluidos los intervalos).</span>
+    </div>
+    <div class="field">
+      <label for="ax-color">Color del texto</label>
+      <input type="color" id="ax-color" value="#111111" style="height:38px;padding:.2rem;cursor:pointer">
     </div>
     <div class="field" style="justify-content:flex-end">
-      <button class="btn btn-ghost" id="ax-reset">Restablecer</button>
+      <label class="check"><input type="checkbox" id="ax-grid" checked> Mostrar cuadrícula</label>
+    </div>
+    <div class="field" style="justify-content:flex-end">
+      <button class="btn btn-ghost" id="ax-reset" type="button">Restablecer</button>
     </div>
   </div>
-</div>
+</details>
 
 <div class="card">
   <h2>Tablas de frecuencia y análisis de relaciones</h2>
@@ -205,7 +211,7 @@ const $=id=>document.getElementById(id);
 const PAL=['#1e3a8a','#4338ca','#b45309','#1d4ed8','#be185d','#15803d','#0891b2','#a16207','#7c3aed','#dc2626','#0d9488','#4f46e5'];
 let mainChart=null, LAST=null, LASTCOL='', SEG='', CURTAB='hist';
 let CURTD='cols3d', CURMV='heat';   // tipo de gráfico activo (bivariado / multivariado)
-let AXFONT=12, AXDEC='';             // tamaño y decimales del texto de los ejes (ajustables)
+let AXFONT=12, AXDEC='', AXCOLOR='#111111', AXGRID=true;  // ajustes del texto/ejes (editables)
 
 /* Formatea un número a los decimales elegidos (o lo deja como está si es 'Automático'). */
 function axNum(v){
@@ -220,6 +226,10 @@ function axLabel(s){
   const d=+AXDEC;
   return s.replace(/-?\d+(?:\.\d+)?/g, m=>{ const n=parseFloat(m); return isFinite(n)?n.toFixed(d):m; });
 }
+/* Ayudas para Plotly: fuente y ejes con el tamaño, color y cuadrícula elegidos. */
+function plFont(delta){ return {size:AXFONT+(delta||0), color:AXCOLOR}; }
+function plCatAxis(title, cats){ return {title:{text:title,font:plFont(1)}, tickfont:plFont(0), showgrid:AXGRID, tickvals:cats.map((_,i)=>i), ticktext:cats.map(axLabel)}; }
+function plNumAxis(title){ return {title:{text:title,font:plFont(1)}, tickfont:plFont(0), showgrid:AXGRID}; }
 /* Aplica tamaño de fuente y decimales a los ejes de un gráfico Chart.js.
    Nota: se asignan objetos de fuente NUEVOS (no se lee el objeto interno de
    Chart.js con Object.assign, que puede provocar recursión), y el formato de
@@ -230,8 +240,9 @@ function styleChartAxes(ch){
     const sc=ch.options.scales||{};
     Object.keys(sc).forEach(id=>{
       const s=sc[id]; if(!s) return;
-      s.ticks=s.ticks||{}; s.ticks.font={size:AXFONT};
-      s.title=s.title||{}; s.title.font={size:AXFONT+1};
+      s.ticks=s.ticks||{}; s.ticks.font={size:AXFONT}; s.ticks.color=AXCOLOR;
+      s.title=s.title||{}; s.title.font={size:AXFONT+1}; s.title.color=AXCOLOR;
+      s.grid=s.grid||{}; s.grid.display=AXGRID;
       if(AXDEC===''){
         s.ticks.callback=undefined;           // formato por defecto de Chart.js
       }else{
@@ -418,7 +429,7 @@ function drawBox(){
   let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:100%;height:${H}px">`;
   // eje Y
   for(let g=0;g<=4;g++){const val=lo+(hi-lo)*g/4;const y=Y(val);
-    svg+=`<line x1="${padL}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#eef2f6"/><text x="${padL-6}" y="${y+3}" font-size="${AXFONT}" text-anchor="end" fill="#64748b">${axNum(val)}</text>`;}
+    svg+=`${AXGRID?`<line x1="${padL}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#eef2f6"/>`:''}<text x="${padL-6}" y="${y+3}" font-size="${AXFONT}" text-anchor="end" fill="${AXCOLOR}">${axNum(val)}</text>`;}
   items.forEach((it,i)=>{
     const cx=padL+step*i+step/2; const b=it.b;
     svg+=`<line x1="${cx}" y1="${Y(b.whisker_lo)}" x2="${cx}" y2="${Y(b.q1)}" stroke="${it.c}" stroke-width="1.5"/>`;
@@ -428,7 +439,7 @@ function drawBox(){
     svg+=`<rect x="${cx-bw/2}" y="${Y(b.q3)}" width="${bw}" height="${Math.max(1,Y(b.q1)-Y(b.q3))}" fill="${it.c}22" stroke="${it.c}" stroke-width="1.5"/>`;
     svg+=`<line x1="${cx-bw/2}" y1="${Y(b.median)}" x2="${cx+bw/2}" y2="${Y(b.median)}" stroke="${it.c}" stroke-width="2.5"/>`;
     b.outliers.forEach(o=>svg+=`<circle cx="${cx}" cy="${Y(o)}" r="2.5" fill="#dc2626"/>`);
-    svg+=`<text x="${cx}" y="${H-padB+16}" font-size="${AXFONT}" text-anchor="middle" fill="#334155">${it.name}</text>`;
+    svg+=`<text x="${cx}" y="${H-padB+16}" font-size="${AXFONT}" text-anchor="middle" fill="${AXCOLOR}">${it.name}</text>`;
   });
   svg+='</svg>'; $('svgArea').innerHTML=svg;
 }
@@ -450,7 +461,7 @@ function drawViolin(){
   const step=(W-padL-20)/items.length; const half=Math.min(46,step*0.4);
   let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px">`;
   for(let g=0;g<=4;g++){const val=lo+(hi-lo)*g/4;const y=Y(val);
-    svg+=`<line x1="${padL}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#eef2f6"/><text x="${padL-6}" y="${y+3}" font-size="${AXFONT}" text-anchor="end" fill="#64748b">${axNum(val)}</text>`;}
+    svg+=`${AXGRID?`<line x1="${padL}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#eef2f6"/>`:''}<text x="${padL-6}" y="${y+3}" font-size="${AXFONT}" text-anchor="end" fill="${AXCOLOR}">${axNum(val)}</text>`;}
   items.forEach((it,i)=>{
     const cx=padL+step*i+step/2; const md=Math.max(...it.d.y);
     let pathR='',pathL='';
@@ -458,7 +469,7 @@ function drawViolin(){
     svg+=`<path d="${pathR}${pathL}Z" fill="${it.c}33" stroke="${it.c}" stroke-width="1.5"/>`;
     if(it.b){svg+=`<line x1="${cx}" y1="${Y(it.b.q1)}" x2="${cx}" y2="${Y(it.b.q3)}" stroke="${it.c}" stroke-width="5" opacity=".8"/>`;
       svg+=`<circle cx="${cx}" cy="${Y(it.b.median)}" r="3" fill="#fff" stroke="${it.c}" stroke-width="1.5"/>`;}
-    svg+=`<text x="${cx}" y="${H-padB+16}" font-size="${AXFONT}" text-anchor="middle" fill="#334155">${it.name}</text>`;
+    svg+=`<text x="${cx}" y="${H-padB+16}" font-size="${AXFONT}" text-anchor="middle" fill="${AXCOLOR}">${it.name}</text>`;
   });
   svg+='</svg>'; $('svgArea').innerHTML=svg;
 }
@@ -701,26 +712,20 @@ async function drawDobleChart(type){
   const d=LASTDOBLE, M=d.r.matriz, xcats=d.r.xcats, ycats=d.r.ycats, el=$('td-plot');
   if(type==='cols3d'){
     $('td-note').innerHTML='Cada columna es la <b>frecuencia conjunta</b> (nº de casos) de una combinación X×Y. Arrastra con el mouse para girar.';
-    const layout={margin:{l:0,r:0,t:8,b:0},font:{size:AXFONT},scene:{
-      xaxis:{title:{text:d.xn,font:{size:AXFONT+1}},tickfont:{size:AXFONT},tickvals:xcats.map((_,i)=>i),ticktext:xcats.map(axLabel)},
-      yaxis:{title:{text:d.yn,font:{size:AXFONT+1}},tickfont:{size:AXFONT},tickvals:ycats.map((_,j)=>j),ticktext:ycats.map(axLabel)},
-      zaxis:{title:{text:'frecuencia',font:{size:AXFONT+1}},tickfont:{size:AXFONT}}}};
+    const layout={margin:{l:0,r:0,t:8,b:0},font:plFont(0),scene:{
+      xaxis:plCatAxis(d.xn,xcats), yaxis:plCatAxis(d.yn,ycats), zaxis:plNumAxis('frecuencia')}};
     Plotly.react(el,[bars3d(M,xcats,ycats)],layout,{responsive:true,displaylogo:false});
   } else if(type==='surf'){
     $('td-note').innerHTML='La <b>superficie</b> muestra la misma frecuencia conjunta como un relieve continuo: los picos son las combinaciones más frecuentes.';
-    const layout={margin:{l:0,r:0,t:8,b:0},font:{size:AXFONT},scene:{
-      xaxis:{title:{text:d.yn,font:{size:AXFONT+1}},tickfont:{size:AXFONT},tickvals:ycats.map((_,j)=>j),ticktext:ycats.map(axLabel)},
-      yaxis:{title:{text:d.xn,font:{size:AXFONT+1}},tickfont:{size:AXFONT},tickvals:xcats.map((_,i)=>i),ticktext:xcats.map(axLabel)},
-      zaxis:{title:{text:'frecuencia',font:{size:AXFONT+1}},tickfont:{size:AXFONT}}}};
+    const layout={margin:{l:0,r:0,t:8,b:0},font:plFont(0),scene:{
+      xaxis:plCatAxis(d.yn,ycats), yaxis:plCatAxis(d.xn,xcats), zaxis:plNumAxis('frecuencia')}};
     Plotly.react(el,[{type:'surface',z:M,x:ycats.map((_,j)=>j),y:xcats.map((_,i)=>i),colorscale:'Blues',showscale:true}],layout,{responsive:true,displaylogo:false});
   } else {
     const ax=[],ay=[]; for(let i=0;i<d.rawX.length;i++){ if(_isNum(d.rawX[i])&&_isNum(d.rawY[i])){ ax.push(+d.rawX[i]); ay.push(+d.rawY[i]); } }
     if(ax.length<3){ Plotly.purge(el); el.innerHTML='<div class="small muted" style="padding:2rem;text-align:center">La dispersión requiere que <b>ambas</b> variables sean numéricas.</div>'; $('td-note').innerHTML='Dispersión no disponible para variables categóricas.'; return; }
     const rr=_pearson(ax,ay);
     $('td-note').innerHTML=`Cada punto es una observación (X, Y). Correlación de Pearson r = <b>${isNaN(rr)?'—':rr.toFixed(3)}</b>`+(isNaN(rr)?'':` (${_fuerza(rr)}, ${rr>0?'positiva':'negativa'}).`);
-    const layout={margin:{l:60,r:15,t:8,b:48},font:{size:AXFONT},
-      xaxis:{title:{text:d.xn,font:{size:AXFONT+1}},tickfont:{size:AXFONT}},
-      yaxis:{title:{text:d.yn,font:{size:AXFONT+1}},tickfont:{size:AXFONT}}};
+    const layout={margin:{l:60,r:15,t:8,b:48},font:plFont(0),xaxis:plNumAxis(d.xn),yaxis:plNumAxis(d.yn)};
     Plotly.react(el,[{type:'scatter',mode:'markers',x:ax,y:ay,marker:{color:'#1e3a8a',size:6,opacity:.55}}],layout,{responsive:true,displaylogo:false});
   }
 }
@@ -752,12 +757,12 @@ async function drawMultiChart(type){
   const r=LASTMV.r, data=LASTMV.data, cols=r.cols, el=$('mv-plot');
   if(type==='heat'){
     const ann=[]; for(let i=0;i<cols.length;i++){ for(let j=0;j<cols.length;j++){ ann.push({x:cols[j],y:cols[i],text:r.corr[i][j].toFixed(2),showarrow:false,font:{size:AXFONT,color:Math.abs(r.corr[i][j])>0.6?'#fff':'#0f172a'}}); } }
-    const layout={margin:{l:100,r:15,t:12,b:100},font:{size:AXFONT},annotations:ann,xaxis:{tickfont:{size:AXFONT}},yaxis:{autorange:'reversed',tickfont:{size:AXFONT}}};
+    const layout={margin:{l:100,r:15,t:12,b:100},font:plFont(0),annotations:ann,xaxis:{tickfont:plFont(0)},yaxis:{autorange:'reversed',tickfont:plFont(0)}};
     Plotly.react(el,[{type:'heatmap',z:r.corr,x:cols,y:cols,zmin:-1,zmax:1,colorscale:'RdBu',reversescale:true,colorbar:{title:'r'}}],layout,{responsive:true,displaylogo:false});
   } else {
     const n=data[cols[0]].length, ok=[]; for(let i=0;i<n;i++){ if(cols.every(c=>_isNum(data[c][i]))) ok.push(i); }
     const dims=cols.map(c=>({label:c,values:ok.map(i=>+data[c][i])}));
-    const layout={margin:{l:70,r:20,t:20,b:45},font:{size:AXFONT}};
+    const layout={margin:{l:70,r:20,t:20,b:45},font:plFont(0)};
     Plotly.react(el,[{type:'splom',dimensions:dims,marker:{color:'#1e3a8a',size:4,opacity:.5}}],layout,{responsive:true,displaylogo:false});
   }
 }
@@ -832,13 +837,19 @@ PSFIG.toolbar($('fig-mv'), ()=>{
   return {kind:'plotly', el:$('mv-plot'), basename:'multivariado_'+CURMV, csv:mvCSV(CURMV)};
 });
 
-/* ---------- Control de tamaño y decimales del texto de los ejes ---------- */
+/* ---------- Control de ejes: tamaño, decimales, color y cuadrícula ---------- */
 (function(){
-  const sz=$('ax-size'), dec=$('ax-dec'), val=$('ax-size-val');
+  const sz=$('ax-size'), dec=$('ax-dec'), val=$('ax-size-val'), col=$('ax-color'), grid=$('ax-grid');
   if(!sz) return;
   sz.addEventListener('input', ()=>{ AXFONT=parseInt(sz.value)||12; val.textContent=sz.value; refreshAxes(); });
   dec.addEventListener('change', ()=>{ AXDEC=dec.value; refreshAxes(); });
-  $('ax-reset').addEventListener('click', ()=>{ AXFONT=12; AXDEC=''; sz.value=12; val.textContent='12'; dec.value=''; refreshAxes(); });
+  col.addEventListener('input', ()=>{ AXCOLOR=col.value||'#111111'; refreshAxes(); });
+  grid.addEventListener('change', ()=>{ AXGRID=grid.checked; refreshAxes(); });
+  $('ax-reset').addEventListener('click', ()=>{
+    AXFONT=12; AXDEC=''; AXCOLOR='#111111'; AXGRID=true;
+    sz.value=12; val.textContent='12'; dec.value=''; col.value='#111111'; grid.checked=true;
+    refreshAxes();
+  });
 })();
 </script>
 {% endblock %}

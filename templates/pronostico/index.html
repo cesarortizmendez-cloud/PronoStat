@@ -118,7 +118,7 @@
   <h2>Comparación de modelos</h2>
   <p class="card-sub" id="cmp-sub"></p>
   <div class="table-wrap"><table id="cmpTable">
-    <thead><tr><th>Modelo</th><th>ME</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>SMAPE</th><th>MASE</th></tr></thead>
+    <thead><tr><th>Modelo</th><th>ME</th><th>MAE</th><th>MAPE</th><th>RMSE ajuste</th><th>RMSE valid.</th><th>MASE</th></tr></thead>
     <tbody></tbody></table></div>
   <div id="cmp-interp" class="small" style="margin-top:.6rem;line-height:1.6"></div>
 </div>
@@ -238,10 +238,11 @@ $('btnCompare').addEventListener('click', async ()=>{
       const tr=document.createElement('tr');
       if(m.ok){
         if(m.model===r.best) tr.className='best-row';
-        const x=m.metrics;
-        tr.innerHTML=`<td><b>${m.label}</b></td><td class="num">${PSU.fmt(x.ME)}</td><td class="num">${PSU.fmt(x.MAE)}</td>
-          <td class="num">${PSU.fmt(x.RMSE)}</td><td class="num">${PSU.fmt(x.MAPE)}</td>
-          <td class="num">${PSU.fmt(x.SMAPE)}</td><td class="num">${PSU.fmt(x.MASE)}</td>`;
+        const f=m.fit||m.metrics||{}, v=m.val;                 // ajuste y validación
+        tr.innerHTML=`<td><b>${m.label}</b></td><td class="num">${PSU.fmt(f.ME)}</td><td class="num">${PSU.fmt(f.MAE)}</td>
+          <td class="num">${PSU.fmt(f.MAPE)}</td>
+          <td class="num">${PSU.fmt(f.RMSE)}</td><td class="num">${v?PSU.fmt(v.RMSE):'—'}</td>
+          <td class="num">${PSU.fmt(f.MASE)}</td>`;
       }else{
         tr.innerHTML=`<td><b>${m.label}</b></td><td colspan="6" class="small" style="color:#b91c1c;text-align:left">${m.error}</td>`;
       }

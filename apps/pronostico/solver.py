@@ -38,7 +38,8 @@ def metrics(y_true, y_pred, scale=None):
         denom = (np.abs(yt) + np.abs(yp))
         smape = float(np.mean(2 * ae[denom != 0] / denom[denom != 0]) * 100) if np.any(denom != 0) else float("nan")
     mase = float(mae / scale) if scale and scale > 0 else float("nan")
-    return {"MAE": mae, "RMSE": rmse, "MAPE": mape, "SMAPE": smape, "MASE": mase}
+    me = float(np.mean(err))   # error medio (sesgo): +subestima, −sobreestima
+    return {"ME": me, "MAE": mae, "RMSE": rmse, "MAPE": mape, "SMAPE": smape, "MASE": mase}
 
 
 def _mase_scale(train, m=1):
@@ -140,6 +141,74 @@ def m_snaive(train, h, m=12, **kw):
         raise ValueError("El ingenuo estacional requiere más datos que un ciclo estacional.")
     fitted = np.concatenate([np.full(m, np.nan), t[:-m]])
     fc = t[-m:][(np.arange(h) % m)]
+    return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
+
+
+# --- Los 3 modelos ingenuos estacionales con tendencia (curso: modelos 3, 4 y 5) --- #
+# Todos usan la recursión del profesor: para pronosticar hacia el futuro, cuando falta
+# un valor real X(·) se reemplaza por su propio pronóstico F(·) y se sigue avanzando.
+def _snaive_trend_core(t, h, m, transfer):
+    """Núcleo común. `transfer(prev, sa, sb)` combina el último valor `prev`=X(t) con el
+    par estacional de un ciclo atrás: sa=X(t+1−s) y sb=X(t−s).
+      · modelo 3 (lineal):  prev + (sa − sb)
+      · modelo 4 (frac. P): prev + P·(sa − sb)
+      · modelo 5 (%):       prev · (sa / sb)
+    fitted[i] (ajuste 1 paso) queda definido desde i = m+1 (necesita X(i−1), X(i−m), X(i−1−m))."""
+    n = t.size
+    fitted = np.full(n, np.nan)
+    for i in range(m + 1, n):
+        fitted[i] = transfer(t[i - 1], t[i - m], t[i - 1 - m])
+    ext = list(t)
+    for k in range(1, h + 1):
+        f = n - 1 + k                       # índice del valor a pronosticar
+        ext.append(transfer(ext[f - 1], ext[f - m], ext[f - 1 - m]))
+    return fitted, np.asarray(ext[n:], dtype=float)
+
+
+def m_snaive_trend(train, h, m=12, **kw):
+    """Modelo 3 · Ingenuo estacional + tendencia lineal.
+       F(t+1) = X(t) + [X(t+1−s) − X(t−s)]."""
+    t = _safe(train)
+    if t.size <= m + 1:
+        raise ValueError("El modelo estacional con tendencia requiere más de un ciclo estacional + 1 dato.")
+    fitted, fc = _snaive_trend_core(t, h, m, lambda prev, sa, sb: prev + (sa - sb))
+    return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
+
+
+def m_snaive_pfrac(train, h, m=12, P=None, **kw):
+    """Modelo 4 · Ingenuo estacional + fracción P de la tendencia.
+       F(t+1) = X(t) + P·[X(t+1−s) − X(t−s)].   P=0 ⇒ modelo 1;  P=1 ⇒ modelo 3.
+       Si no se entrega P, se elige por barrido el que minimiza el RMSE de ajuste."""
+    t = _safe(train)
+    if t.size <= m + 1:
+        raise ValueError("El modelo estacional con fracción P requiere más de un ciclo estacional + 1 dato.")
+    auto = P is None
+    if auto:
+        best_p, best_rmse = 0.0, float("inf")
+        for p in np.round(np.arange(0.0, 1.2001, 0.05), 4):
+            fit, _ = _snaive_trend_core(t, 0, m, (lambda pp: (lambda prev, sa, sb: prev + pp * (sa - sb)))(p))
+            mk = ~np.isnan(fit)
+            if not np.any(mk):
+                continue
+            r = math.sqrt(np.mean((t[mk] - fit[mk]) ** 2))
+            if r < best_rmse:
+                best_rmse, best_p = r, float(p)
+        P = best_p
+    P = float(P)
+    fitted, fc = _snaive_trend_core(t, h, m, lambda prev, sa, sb: prev + P * (sa - sb))
+    return {"fitted": fitted, "forecast": fc, "params": {"periodo": m, "P": round(P, 3), "P_auto": auto}}
+
+
+def m_snaive_pct(train, h, m=12, **kw):
+    """Modelo 5 · Ingenuo estacional + tendencia porcentual (crecimiento exponencial).
+       F(t+1) = X(t)·[X(t+1−s) / X(t−s)]."""
+    t = _safe(train)
+    if t.size <= m + 1:
+        raise ValueError("El modelo estacional con tendencia % requiere más de un ciclo estacional + 1 dato.")
+
+    def _pct(prev, sa, sb):
+        return prev * (sa / sb) if sb != 0 else prev
+    fitted, fc = _snaive_trend_core(t, h, m, _pct)
     return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
 
 
@@ -274,6 +343,9 @@ _MODELS = {
     # --- Modelos de tipo ingenuo (líneas base / benchmarks) ---
     "ingenuo": m_naive,
     "ingenuo_estacional": m_snaive,
+    "ingenuo_estacional_tend": m_snaive_trend,     # modelo 3 (curso)
+    "ingenuo_estacional_fracp": m_snaive_pfrac,    # modelo 4 (curso)
+    "ingenuo_estacional_pct": m_snaive_pct,        # modelo 5 (curso)
     "deriva": m_drift,
     "media": m_mean,
     "random_walk": m_rw,
@@ -290,8 +362,11 @@ _MODELS = {
     "holt_winters": m_hw_add,
 }
 _LABELS = {
-    "ingenuo": "Ingenuo (Naïve)",
-    "ingenuo_estacional": "Ingenuo estacional (Seasonal naïve)",
+    "ingenuo": "Ingenuo simple (modelo 1)",
+    "ingenuo_estacional": "Ingenuo estacional (modelo 2)",
+    "ingenuo_estacional_tend": "Ingenuo estacional + tendencia lineal (modelo 3)",
+    "ingenuo_estacional_fracp": "Ingenuo estacional + fracción P (modelo 4)",
+    "ingenuo_estacional_pct": "Ingenuo estacional + tendencia % (modelo 5)",
     "deriva": "Ingenuo con deriva (Drift)",
     "media": "Media simple (Mean)",
     "random_walk": "Caminata aleatoria (Random walk)",
@@ -305,7 +380,8 @@ _LABELS = {
     "hw_amort_multiplicativo": "Holt-Winters amortiguado multiplicativo",
     "holt_winters": "Holt-Winters",
 }
-_SEASONAL = {"ingenuo_estacional", "holt_winters", "hw_aditivo", "hw_multiplicativo",
+_SEASONAL = {"ingenuo_estacional", "ingenuo_estacional_tend", "ingenuo_estacional_fracp",
+             "ingenuo_estacional_pct", "holt_winters", "hw_aditivo", "hw_multiplicativo",
              "hw_amort_aditivo", "hw_amort_multiplicativo"}
 _NOGROW = {"media", "promedio_movil"}          # intervalos de ancho constante
 
@@ -361,7 +437,10 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     # ------------------- Interpretación automática -------------------
     _desc = {
         "ingenuo": "El pronóstico repite el último valor observado (ŷ = yₜ); sirve como línea base de comparación.",
-        "ingenuo_estacional": "El pronóstico repite el valor del mismo periodo del ciclo anterior (m atrás): p. ej. este diciembre = diciembre pasado.",
+        "ingenuo_estacional": "El pronóstico repite el valor del mismo periodo del ciclo anterior (m atrás): p. ej. este diciembre = diciembre pasado. Captura estacionalidad pero no el crecimiento (si la serie sube año a año, subestima).",
+        "ingenuo_estacional_tend": "Ingenuo estacional + tendencia lineal (modelo 3): F(t+1)=X(t)+[X(t+1−s)−X(t−s)]. Toma el último valor y le suma la tendencia observada un año atrás en esa misma transición. Capta estacionalidad y crecimiento de cantidad fija.",
+        "ingenuo_estacional_fracp": "Ingenuo estacional + fracción P (modelo 4): F(t+1)=X(t)+P·[X(t+1−s)−X(t−s)]. Traspasa solo una parte P (0–1) de la tendencia; P=0 equivale al ingenuo simple y P=1 al modelo 3. Útil cuando no hay plena seguridad de que la tendencia se mantenga.",
+        "ingenuo_estacional_pct": "Ingenuo estacional + tendencia porcentual (modelo 5): F(t+1)=X(t)·[X(t+1−s)/X(t−s)]. Multiplica por la tasa de cambio del año anterior; modela crecimiento proporcional (exponencial), frecuente en economía.",
         "deriva": "Ingenuo con deriva: parte del último valor y le suma el cambio promedio observado en la historia, por lo que la proyección sube o baja de forma constante.",
         "media": "Media simple: todos los valores futuros se pronostican como el promedio de toda la serie histórica; ignora tendencia y estacionalidad.",
         "random_walk": "Caminata aleatoria: modelo estocástico Yₜ = Yₜ₋₁ + εₜ. Su pronóstico puntual coincide con el ingenuo (el último valor), y es la base teórica de por qué la incertidumbre crece con √h.",
@@ -384,8 +463,15 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
         interp.append(f"β (tendencia) = {p['beta']:.3f}: qué tan rápido se actualiza la pendiente de la serie.")
     if "gamma" in p and p.get("gamma") == p.get("gamma"):
         interp.append(f"γ (estacionalidad) = {p['gamma']:.3f}: qué tan rápido se actualiza el patrón estacional.")
+    if "P" in p:
+        interp.append(f"P (fracción de la tendencia) = {p['P']:.2f}"
+                      + (" — elegido por barrido buscando el menor RMSE de ajuste (P=0 sería el ingenuo simple; P=1, el modelo 3)."
+                         if p.get("P_auto") else " (valor fijado por el usuario)."))
     _met = test_metrics or insample
     _origen = "sobre el conjunto de prueba (holdout)" if test_metrics else "sobre el ajuste in-sample"
+    if "ME" in _met and _met["ME"] == _met["ME"]:
+        signo = "subestima (sesgo positivo)" if _met["ME"] > 0 else ("sobreestima (sesgo negativo)" if _met["ME"] < 0 else "sin sesgo")
+        interp.append(f"El ME (error medio) {_origen} es {_met['ME']:+.2f}: el modelo {signo}; cercano a 0 es lo deseable.")
     if _met["MAPE"] == _met["MAPE"]:
         mp = _met["MAPE"]
         q = "excelente" if mp < 10 else ("buena" if mp < 20 else ("aceptable" if mp < 50 else "pobre"))
@@ -414,7 +500,9 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
 
 def compare(y, models=None, h=6, m=12, holdout=6, conf=95, params_map=None):
     y_clean = [v for v in y if v is not None]
-    models = models or ["ingenuo", "ingenuo_estacional", "deriva", "media", "random_walk",
+    models = models or ["ingenuo", "ingenuo_estacional", "ingenuo_estacional_tend",
+                        "ingenuo_estacional_fracp", "ingenuo_estacional_pct",
+                        "deriva", "media", "random_walk",
                         "promedio_movil", "ses", "holt", "holt_amort",
                         "hw_aditivo", "hw_multiplicativo", "hw_amort_aditivo", "hw_amort_multiplicativo"]
     params_map = params_map or {}

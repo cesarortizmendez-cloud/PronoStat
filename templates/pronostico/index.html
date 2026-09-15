@@ -13,10 +13,8 @@
 
 <div class="theory">
   <h3>Métodos y métricas</h3>
-  <p><b>Modelos ingenuos (líneas base):</b> <i>Ingenuo</i> (repite el último valor),
-     <i>Ingenuo estacional</i> (repite el mismo periodo del ciclo anterior), <i>Deriva</i>
-     (último valor + cambio promedio), <i>Media simple</i> (promedio de toda la serie),
-     <i>Caminata aleatoria</i> (Yₜ = Yₜ₋₁ + εₜ) y <i>Promedio móvil</i>.</p>
+  <p><b>Los 5 modelos ingenuos (del curso):</b> pronostican a partir del último valor conocido o de los más recientes; son el <i>benchmark</i> que todo modelo debe superar. <b>1 · Ingenuo simple</b> F(t+1)=X(t) — solo el nivel (precios sin tendencia ni estacionalidad); <b>2 · Ingenuo estacional</b> F(t+1)=X(t+1−s) — repite el mismo periodo del ciclo anterior; <b>3 · Estacional + tendencia lineal</b> F(t+1)=X(t)+[X(t+1−s)−X(t−s)] — suma la última tendencia conocida (crecimiento de cantidad fija); <b>4 · Estacional + fracción P</b> F(t+1)=X(t)+P·[X(t+1−s)−X(t−s)] — traspasa solo una parte P (0–1) de la tendencia (P=0 ⇒ modelo 1, P=1 ⇒ modelo 3); <b>5 · Estacional + tendencia %</b> F(t+1)=X(t)·[X(t+1−s)/X(t−s)] — crecimiento porcentual (exponencial). Con <i>s</i> = periodo estacional (4 trimestral, 12 mensual). Se elige el de menor <b>RMSE de validación</b>.</p>
+  <p><b>Otros ingenuos (líneas base):</b> <i>Deriva</i> (último valor + cambio promedio), <i>Media simple</i> (promedio de toda la serie), <i>Caminata aleatoria</i> (Yₜ = Yₜ₋₁ + εₜ) y <i>Promedio móvil</i>.</p>
   <p><b>Suavización exponencial (ETS):</b> promedios ponderados que dan más peso a lo reciente.
      <i>SES</i> (nivel, α), <i>Holt</i> (+ tendencia β) y <i>Holt amortiguado</i> (tendencia que se frena, φ);
      <i>Holt-Winters</i> (+ estacionalidad γ) en cuatro variantes: aditiva o multiplicativa, cada una con
@@ -43,9 +41,14 @@
     <div class="field"><label for="col">Serie (variable numérica)</label><select id="col"></select></div>
     <div class="field"><label for="model">Modelo</label>
       <select id="model">
-        <optgroup label="Modelos ingenuos (líneas base)">
-          <option value="ingenuo">Ingenuo (Naïve)</option>
-          <option value="ingenuo_estacional">Ingenuo estacional</option>
+        <optgroup label="Modelos ingenuos del curso (los 5 modelos)">
+          <option value="ingenuo">1 · Ingenuo simple — F(t+1)=X(t)</option>
+          <option value="ingenuo_estacional">2 · Ingenuo estacional — F(t+1)=X(t+1−s)</option>
+          <option value="ingenuo_estacional_tend">3 · Estacional + tendencia lineal — X(t)+[X(t+1−s)−X(t−s)]</option>
+          <option value="ingenuo_estacional_fracp">4 · Estacional + fracción P — X(t)+P·[X(t+1−s)−X(t−s)]</option>
+          <option value="ingenuo_estacional_pct">5 · Estacional + tendencia % — X(t)·[X(t+1−s)/X(t−s)]</option>
+        </optgroup>
+        <optgroup label="Otros modelos ingenuos (líneas base)">
           <option value="deriva">Ingenuo con deriva</option>
           <option value="media">Media simple</option>
           <option value="random_walk">Caminata aleatoria</option>
@@ -112,7 +115,7 @@
   <h2>Comparación de modelos</h2>
   <p class="card-sub" id="cmp-sub"></p>
   <div class="table-wrap"><table id="cmpTable">
-    <thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>SMAPE</th><th>MASE</th></tr></thead>
+    <thead><tr><th>Modelo</th><th>ME</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>SMAPE</th><th>MASE</th></tr></thead>
     <tbody></tbody></table></div>
   <div id="cmp-interp" class="small" style="margin-top:.6rem;line-height:1.6"></div>
 </div>
@@ -123,7 +126,7 @@
 const $=id=>document.getElementById(id);
 let fcChart,LAST=null,CTX={};
 
-const SEASONAL_MODELS=['ingenuo_estacional','hw_aditivo','hw_multiplicativo','hw_amort_aditivo','hw_amort_multiplicativo'];
+const SEASONAL_MODELS=['ingenuo_estacional','ingenuo_estacional_tend','ingenuo_estacional_fracp','ingenuo_estacional_pct','hw_aditivo','hw_multiplicativo','hw_amort_aditivo','hw_amort_multiplicativo'];
 function toggleParams(){
   const mdl=$('model').value;
   const show=(sel,on)=>document.querySelectorAll(sel).forEach(e=>e.style.display=on?'':'none');
@@ -205,7 +208,7 @@ function render(r,col){
 
   // métricas
   const im=r.insample_metrics, tm=r.test_metrics;
-  const order=['MAE','RMSE','MAPE','SMAPE','MASE'];
+  const order=['ME','MAE','RMSE','MAPE','SMAPE','MASE'];
   $('metTable').querySelector('tbody').innerHTML=order.map(k=>
     `<tr><td><b>${k}</b></td><td class="num">${PSU.fmt(im[k])}</td><td class="num">${tm?PSU.fmt(tm[k]):'—'}</td></tr>`).join('');
 
@@ -231,11 +234,11 @@ $('btnCompare').addEventListener('click', async ()=>{
       if(m.ok){
         if(m.model===r.best) tr.className='best-row';
         const x=m.metrics;
-        tr.innerHTML=`<td><b>${m.label}</b></td><td class="num">${PSU.fmt(x.MAE)}</td>
+        tr.innerHTML=`<td><b>${m.label}</b></td><td class="num">${PSU.fmt(x.ME)}</td><td class="num">${PSU.fmt(x.MAE)}</td>
           <td class="num">${PSU.fmt(x.RMSE)}</td><td class="num">${PSU.fmt(x.MAPE)}</td>
           <td class="num">${PSU.fmt(x.SMAPE)}</td><td class="num">${PSU.fmt(x.MASE)}</td>`;
       }else{
-        tr.innerHTML=`<td><b>${m.label}</b></td><td colspan="5" class="small" style="color:#b91c1c;text-align:left">${m.error}</td>`;
+        tr.innerHTML=`<td><b>${m.label}</b></td><td colspan="6" class="small" style="color:#b91c1c;text-align:left">${m.error}</td>`;
       }
       tb.appendChild(tr);
     });

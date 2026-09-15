@@ -22,7 +22,7 @@ _MANIFEST = '''{
 }'''
 
 _SERVICE_WORKER = '''
-var CACHE = "pronostat-v3";
+var CACHE = "pronostat-v4";
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(["/"]); }).catch(function(){}));
   self.skipWaiting();

@@ -138,7 +138,9 @@ def m_naive(train, h, m=1, **kw):
 def m_snaive(train, h, m=12, **kw):
     t = _safe(train)
     if t.size < m:
-        raise ValueError(f"El ingenuo estacional necesita al menos un ciclo completo (m = {m} datos).")
+        raise ValueError(f"El ingenuo estacional con periodo estacional m = {m} necesita al menos {m} datos "
+                         f"(un ciclo completo) y tienes {t.size}. Si tu serie es trimestral, cambia el periodo "
+                         f"estacional m a 4; si es mensual, necesitas al menos {m} meses.")
     fitted = np.concatenate([np.full(m, np.nan), t[:-m]])
     fc = t[-m:][(np.arange(h) % m)]
     return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
@@ -170,7 +172,8 @@ def m_snaive_trend(train, h, m=12, **kw):
        F(t+1) = X(t) + [X(t+1−s) − X(t−s)]."""
     t = _safe(train)
     if t.size < m + 1:
-        raise ValueError(f"El modelo estacional con tendencia necesita al menos {m + 1} datos (un ciclo + 1).")
+        raise ValueError(f"El modelo estacional con tendencia (periodo m = {m}) necesita al menos {m + 1} datos "
+                         f"(un ciclo + 1) y tienes {t.size}. Si tu serie es trimestral, cambia el periodo estacional m a 4.")
     fitted, fc = _snaive_trend_core(t, h, m, lambda prev, sa, sb: prev + (sa - sb))
     return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
 
@@ -181,7 +184,8 @@ def m_snaive_pfrac(train, h, m=12, P=None, **kw):
        Si no se entrega P, se elige por barrido el que minimiza el RMSE de ajuste."""
     t = _safe(train)
     if t.size < m + 1:
-        raise ValueError(f"El modelo estacional con fracción P necesita al menos {m + 1} datos (un ciclo + 1).")
+        raise ValueError(f"El modelo estacional con fracción P (periodo m = {m}) necesita al menos {m + 1} datos "
+                         f"(un ciclo + 1) y tienes {t.size}. Si tu serie es trimestral, cambia el periodo estacional m a 4.")
     auto = P is None
     if auto:
         best_p, best_rmse = 0.0, float("inf")
@@ -204,7 +208,8 @@ def m_snaive_pct(train, h, m=12, **kw):
        F(t+1) = X(t)·[X(t+1−s) / X(t−s)]."""
     t = _safe(train)
     if t.size < m + 1:
-        raise ValueError(f"El modelo estacional con tendencia % necesita al menos {m + 1} datos (un ciclo + 1).")
+        raise ValueError(f"El modelo estacional con tendencia % (periodo m = {m}) necesita al menos {m + 1} datos "
+                         f"(un ciclo + 1) y tienes {t.size}. Si tu serie es trimestral, cambia el periodo estacional m a 4.")
 
     def _pct(prev, sa, sb):
         return prev * (sa / sb) if sb != 0 else prev

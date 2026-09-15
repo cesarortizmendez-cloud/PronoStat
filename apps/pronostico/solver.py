@@ -137,8 +137,8 @@ def m_naive(train, h, m=1, **kw):
 
 def m_snaive(train, h, m=12, **kw):
     t = _safe(train)
-    if t.size <= m:
-        raise ValueError("El ingenuo estacional requiere más datos que un ciclo estacional.")
+    if t.size < m:
+        raise ValueError(f"El ingenuo estacional necesita al menos un ciclo completo (m = {m} datos).")
     fitted = np.concatenate([np.full(m, np.nan), t[:-m]])
     fc = t[-m:][(np.arange(h) % m)]
     return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
@@ -169,8 +169,8 @@ def m_snaive_trend(train, h, m=12, **kw):
     """Modelo 3 · Ingenuo estacional + tendencia lineal.
        F(t+1) = X(t) + [X(t+1−s) − X(t−s)]."""
     t = _safe(train)
-    if t.size <= m + 1:
-        raise ValueError("El modelo estacional con tendencia requiere más de un ciclo estacional + 1 dato.")
+    if t.size < m + 1:
+        raise ValueError(f"El modelo estacional con tendencia necesita al menos {m + 1} datos (un ciclo + 1).")
     fitted, fc = _snaive_trend_core(t, h, m, lambda prev, sa, sb: prev + (sa - sb))
     return {"fitted": fitted, "forecast": fc, "params": {"periodo": m}}
 
@@ -180,8 +180,8 @@ def m_snaive_pfrac(train, h, m=12, P=None, **kw):
        F(t+1) = X(t) + P·[X(t+1−s) − X(t−s)].   P=0 ⇒ modelo 1;  P=1 ⇒ modelo 3.
        Si no se entrega P, se elige por barrido el que minimiza el RMSE de ajuste."""
     t = _safe(train)
-    if t.size <= m + 1:
-        raise ValueError("El modelo estacional con fracción P requiere más de un ciclo estacional + 1 dato.")
+    if t.size < m + 1:
+        raise ValueError(f"El modelo estacional con fracción P necesita al menos {m + 1} datos (un ciclo + 1).")
     auto = P is None
     if auto:
         best_p, best_rmse = 0.0, float("inf")
@@ -203,8 +203,8 @@ def m_snaive_pct(train, h, m=12, **kw):
     """Modelo 5 · Ingenuo estacional + tendencia porcentual (crecimiento exponencial).
        F(t+1) = X(t)·[X(t+1−s) / X(t−s)]."""
     t = _safe(train)
-    if t.size <= m + 1:
-        raise ValueError("El modelo estacional con tendencia % requiere más de un ciclo estacional + 1 dato.")
+    if t.size < m + 1:
+        raise ValueError(f"El modelo estacional con tendencia % necesita al menos {m + 1} datos (un ciclo + 1).")
 
     def _pct(prev, sa, sb):
         return prev * (sa / sb) if sb != 0 else prev
@@ -405,8 +405,8 @@ def _intervals(forecast, sigma, conf=95, grow=True):
 # --------------------------------------------------------------------------- #
 def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     y = _safe([v for v in y if v is not None and not (isinstance(v, float) and math.isnan(v))])
-    if y.size < 4:
-        raise ValueError("Se requieren al menos 4 observaciones.")
+    if y.size < 2:
+        raise ValueError("Se requieren al menos 2 observaciones.")
     params = params or {}
     h, holdout = int(h), int(holdout)
     if model not in _MODELS:
@@ -415,7 +415,7 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
 
     test_metrics = test_pred = test_actual = None
     if holdout > 0:
-        if holdout >= y.size - 2:
+        if holdout >= y.size - 1:
             raise ValueError("El conjunto de prueba es demasiado grande para los datos disponibles.")
         train, test = y[:-holdout], y[-holdout:]
         res_t = _MODELS[model](train, holdout, m=m, **params)
@@ -430,7 +430,14 @@ def run(y, model="ses", h=6, m=12, holdout=0, conf=95, params=None):
     sigma = _resid_sigma(y, fitted)
     mask = ~np.isnan(fitted)
     scale_full = _mase_scale(y, m if seasonal_model else 1)
-    insample = metrics(y[mask], fitted[mask], scale_full)
+    # Con muy pocos datos puede no haber ningún pronóstico de ajuste (1 paso) todavía;
+    # en ese caso las métricas de ajuste quedan indefinidas (se muestran como «—»),
+    # pero el pronóstico hacia el futuro sí se calcula.
+    if np.any(mask):
+        insample = metrics(y[mask], fitted[mask], scale_full)
+    else:
+        insample = {"ME": float("nan"), "MAE": float("nan"), "RMSE": float("nan"),
+                    "MAPE": float("nan"), "SMAPE": float("nan"), "MASE": float("nan")}
     grow = model not in _NOGROW
     pi = _intervals(forecast, sigma, conf, grow)
 

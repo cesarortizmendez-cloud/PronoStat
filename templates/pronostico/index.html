@@ -70,6 +70,9 @@
     <div class="field p-m" style="display:none"><label for="m">Periodo estacional m</label>
       <input type="number" id="m" min="2" max="52" value="12"><span class="hint">12 = mensual, 4 = trimestral, 7 = diario/semanal</span></div>
     <div class="field p-ma2" style="display:none"><label for="window">Ventana promedio móvil (k)</label><input type="number" id="window" min="1" value="3"></div>
+    <div class="field p-P" style="display:none"><label for="Pfrac">Fracción P de la tendencia (modelo 4)</label>
+      <input type="number" id="Pfrac" min="0" max="2" step="0.05" placeholder="auto (barrido)">
+      <span class="hint">Vacío = P óptimo por barrido. Escribe 0.5 para reproducir un valor fijo (P=0 → modelo 1; P=1 → modelo 3).</span></div>
 
     <div class="field"><label for="holdout">Conjunto de prueba (holdout)</label><input type="number" id="holdout" min="0" max="40" value="6"><span class="hint">0 = usar toda la serie para ajustar</span></div>
     <div class="field"><label for="conf">Confianza del intervalo</label>
@@ -132,6 +135,7 @@ function toggleParams(){
   const show=(sel,on)=>document.querySelectorAll(sel).forEach(e=>e.style.display=on?'':'none');
   show('.p-m', SEASONAL_MODELS.includes(mdl));
   show('.p-ma2', mdl==='promedio_movil');
+  show('.p-P', mdl==='ingenuo_estacional_fracp');
 }
 $('model').addEventListener('change',toggleParams);
 
@@ -147,6 +151,7 @@ initCols();
 function collectParams(){
   const mdl=$('model').value, p={};
   if(mdl==='promedio_movil') p.window=parseInt($('window').value)||3;
+  if(mdl==='ingenuo_estacional_fracp' && $('Pfrac').value!=='') p.P=parseFloat($('Pfrac').value);
   return p;   // estacionalidad y amortiguamiento van codificados en la clave del modelo
 }
 

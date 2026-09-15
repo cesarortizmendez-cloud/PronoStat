@@ -506,26 +506,57 @@ def compare(y, models=None, h=6, m=12, holdout=6, conf=95, params_map=None):
                         "promedio_movil", "ses", "holt", "holt_amort",
                         "hw_aditivo", "hw_multiplicativo", "hw_amort_aditivo", "hw_amort_multiplicativo"]
     params_map = params_map or {}
-    rows = []
+    yc = _safe([v for v in y_clean if not (isinstance(v, float) and math.isnan(v))])
+
+    runs, errors = {}, {}
     for mod in models:
         try:
-            r = run(y_clean, mod, h=h, m=m, holdout=holdout, conf=conf, params=params_map.get(mod))
-            met = r["test_metrics"] or r["insample_metrics"]
-            rows.append({"model": mod, "label": _LABELS[mod], "ok": True,
-                         "metrics": met, "params": r["params"]})
+            runs[mod] = run(y_clean, mod, h=h, m=m, holdout=holdout, conf=conf, params=params_map.get(mod))
         except Exception as e:
-            rows.append({"model": mod, "label": _LABELS.get(mod, mod), "ok": False, "error": str(e)})
+            errors[mod] = str(e)
+
+    # AJUSTE (sin holdout): se compara a todos los modelos sobre la MISMA ventana de
+    # pronóstico 1 paso adelante — la intersección de sus dominios válidos —, tal como
+    # en el material del curso. Así M1 y M2 se miden en el mismo tramo que M3, M4 y M5
+    # (p. ej. 2024 T2–2025 T4) y las métricas resultan comparables entre sí.
+    common = {}
+    ventana_txt = ""
+    if runs and holdout == 0:
+        fits = {mod: _safe([np.nan if v is None else v for v in r["fitted"]]) for mod, r in runs.items()}
+        cmask = np.ones(yc.size, dtype=bool)
+        for f in fits.values():
+            cmask &= ~np.isnan(f)
+        if cmask.any():
+            idx = np.where(cmask)[0]
+            ventana_txt = f" (misma ventana de {int(idx.size)} periodos, índices {int(idx[0])+1}–{int(idx[-1])+1})"
+            for mod, f in fits.items():
+                scale = _mase_scale(yc, m if mod in _SEASONAL else 1)
+                common[mod] = metrics(yc[cmask], f[cmask], scale)
+
+    rows = []
+    for mod in models:
+        if mod in errors:
+            rows.append({"model": mod, "label": _LABELS.get(mod, mod), "ok": False, "error": errors[mod]})
+            continue
+        r = runs[mod]
+        met = r["test_metrics"] or common.get(mod) or r["insample_metrics"]
+        rows.append({"model": mod, "label": _LABELS[mod], "ok": True,
+                     "metrics": met, "params": r["params"]})
+
     ok = [r for r in rows if r["ok"] and r["metrics"]["RMSE"] == r["metrics"]["RMSE"]]
     ok.sort(key=lambda r: r["metrics"]["RMSE"])
     best = ok[0]["model"] if ok else None
     interp = []
     if best:
         interp.append(f"El mejor modelo es «{_LABELS[best]}» por tener el menor RMSE "
-                      f"({ok[0]['metrics']['RMSE']:.3g}), evaluado en {'el conjunto de prueba' if holdout > 0 else 'el ajuste in-sample'}.")
+                      f"({ok[0]['metrics']['RMSE']:.3g}), evaluado en {'el conjunto de prueba (validación)' if holdout > 0 else 'el ajuste 1 paso adelante'}.")
+        if holdout == 0 and common:
+            interp.append("El ajuste se mide para todos los modelos sobre la misma ventana común de pronóstico 1 paso adelante"
+                          + ventana_txt + ", de modo que ME, MAPE y RMSE sean comparables entre modelos (criterio del curso).")
         interp.append("Compara también MAPE y MASE: un buen modelo suele tener MASE < 1 (supera al método ingenuo). "
                       "El modelo más complejo no siempre es el mejor; prefiere el más simple con error similar.")
     else:
         interp.append("Ningún modelo pudo evaluarse; revisa que la serie tenga suficientes datos (Holt-Winters exige 2 ciclos completos).")
     return {"ranking": rows, "best": best, "criterion": "RMSE (menor es mejor)",
             "interpretacion": interp,
-            "evaluated_on": "prueba (holdout)" if holdout > 0 else "ajuste in-sample"}
+            "evaluated_on": ("prueba/validación (holdout)" if holdout > 0 else "ajuste 1 paso adelante" + ventana_txt)}
